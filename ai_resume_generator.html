@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Resume Maker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            scroll-behavior: smooth;
+        }
+        /* Custom scrollbar for a cleaner look */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .modal-content {
+            animation: fadeIn 0.3s ease-out;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* --- TEMPLATE STYLES --- */
+
+        /* Classic Professional Template */
+        .template-classic .resume-body { background: white; color: #334155; font-size: 14px; line-height: 1.6; }
+        .template-classic .resume-container { display: grid; grid-template-columns: 1fr 2.5fr; max-width: 8.5in; min-height: 11in; margin: auto; box-shadow: 0 0 15px rgba(0,0,0,0.1); }
+        .template-classic .resume-sidebar { background-color: #1e293b; color: #f8fafc; padding: 1.5rem; }
+        .template-classic .resume-sidebar h2 { color: #60a5fa; border-bottom: 1px solid #3b82f6; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 1px; padding-bottom: 0.25rem; margin-bottom: 0.5rem;}
+        .template-classic .resume-main { padding: 1.5rem; }
+        .template-classic .resume-main h1 { font-size: 2.5rem; font-weight: 800; color: #1e293b; margin-bottom: 0.25rem; }
+        .template-classic .resume-main h2 { font-size: 1.25rem; font-weight: 700; color: #3b82f6; margin-top: 1.25rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.25rem; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 1px;}
+        .template-classic .resume-main h3 { font-size: 1.1rem; font-weight: 600; color: #1e293b; }
+        .template-classic .resume-main ul { list-style-type: disc; padding-left: 1.25rem; }
+        .template-classic .profile-pic { width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 4px solid #3b82f6; margin: 0 auto 1rem; display: block; }
+        .template-classic .contact-item { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+        .template-classic .skills-container span { background-color: #334155; }
+        
+        /* Modern Minimalist Template */
+        .template-modern .resume-body { background: white; color: #374151; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 15px; }
+        .template-modern .resume-container { max-width: 8.5in; min-height: 11in; margin: auto; box-shadow: 0 0 15px rgba(0,0,0,0.1); padding: 2.5rem; }
+        .template-modern .resume-header { text-align: center; border-bottom: 1px solid #d1d5db; padding-bottom: 1rem; margin-bottom: 1rem; }
+        .template-modern .profile-pic { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; margin: 0 auto 1rem; display: block; }
+        .template-modern .resume-header h1 { font-size: 2.75rem; font-weight: 300; letter-spacing: 1px; color: #111827; margin: 0; }
+        .template-modern .contact-info { display: flex; justify-content: center; gap: 1.5rem; margin-top: 0.5rem; font-size: 0.9rem; color: #4b5563; }
+        .template-modern .contact-info a { color: #1f2937; text-decoration: none; }
+        .template-modern .contact-info a:hover { text-decoration: underline; }
+        .template-modern .resume-main h2 { font-size: 1.1rem; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; color: #111827; border-bottom: 1px solid #d1d5db; padding-bottom: 0.25rem; margin-top: 1.5rem; margin-bottom: 1rem; }
+        .template-modern .resume-main h3 { font-size: 1.1rem; font-weight: 600; color: #1f2937; }
+        .template-modern .job-header { display: flex; justify-content: space-between; align-items: baseline; }
+        .template-modern .job-header em { font-style: normal; color: #4b5563; }
+        .template-modern .skills-container { text-align: center; }
+        .template-modern .skills-container span { background-color: #e5e7eb; color: #374151; font-weight: 500; }
+        .template-modern ul { list-style-position: outside; padding-left: 1em; }
+
+
+        /* Fallback for AI generated content without these classes */
+        #resume-content h1, #resume-content h2, #resume-content h3 { font-weight: bold; margin-top: 1.25rem; margin-bottom: 0.5rem; }
+        #resume-content a { color: #2563eb; text-decoration: none; }
+        #resume-content a:hover { text-decoration: underline; }
+
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 transition-all duration-300">
+
+    <!-- Main Container -->
+    <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-900">AI-Powered Resume Builder</h1>
+            <p class="text-lg text-gray-600 mt-2">Create a professional resume in minutes and refine it with the power of AI.</p>
+        </header>
+
+        <!-- Action Button -->
+        <div id="initial-view" class="text-center bg-white p-10 rounded-xl shadow-lg">
+             <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <button id="open-modal-btn" class="flex-1 bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700 transition-transform transform hover:scale-105 shadow-md">
+                    <i class="fas fa-plus-circle mr-2"></i> Create Your Resume
+                </button>
+                <button id="random-resume-btn" class="flex-1 bg-gray-700 text-white font-bold py-3 px-8 rounded-lg hover:bg-gray-800 transition-transform transform hover:scale-105 shadow-md">
+                    <i class="fas fa-dice mr-2"></i> Generate Random Resume
+                </button>
+            </div>
+        </div>
+
+        <!-- Resume Output & AI Editor -->
+        <div id="resume-view" class="hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Resume Preview -->
+                <div class="lg:col-span-2 bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
+                    <div class="flex flex-col sm:flex-row justify-between items-center mb-4 border-b pb-3">
+                        <h2 class="text-2xl font-bold mb-3 sm:mb-0">Your Generated Resume</h2>
+                        <div class="flex items-center gap-4">
+                            <div class="relative inline-block text-left">
+                                <button id="design-dropdown-btn" type="button" class="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none">
+                                    <span id="selected-design-text">Template: Classic</span>
+                                    <i class="fas fa-chevron-down -mr-1 ml-2 h-5 w-5 my-auto"></i>
+                                </button>
+                                <div id="design-dropdown-menu" class="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none hidden z-10">
+                                    <div class="py-1" id="design-options-container">
+                                        <!-- Design options will be populated here -->
+                                    </div>
+                                </div>
+                            </div>
+                            <button id="print-btn" class="bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-gray-700 transition"><i class="fas fa-print"></i></button>
+                        </div>
+                    </div>
+                    <div id="resume-output" class="prose max-w-none">
+                         <div id="resume-content" class="border rounded-lg bg-gray-50 overflow-hidden">
+                            <!-- Generated resume will be injected here -->
+                         </div>
+                    </div>
+                </div>
+
+                <!-- AI Assistant -->
+                <div class="lg:col-span-1 bg-gradient-to-br from-gray-50 to-blue-50 p-6 rounded-2xl shadow-lg h-fit sticky top-8">
+                    <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                        <i class="fas fa-magic-wand-sparkles mr-3 text-blue-600"></i>AI Assistant
+                    </h3>
+                     <div id="quick-actions" class="mb-4">
+                         <p class="text-sm font-semibold text-gray-700 mb-2">Quick Actions:</p>
+                         <div class="flex flex-wrap gap-2">
+                            <button class="quick-prompt-btn bg-white border border-gray-300 text-gray-700 text-xs font-medium py-1 px-3 rounded-full hover:bg-gray-200 transition">Make it more professional</button>
+                            <button class="quick-prompt-btn bg-white border border-gray-300 text-gray-700 text-xs font-medium py-1 px-3 rounded-full hover:bg-gray-200 transition">Change accent color to purple</button>
+                            <button class="quick-prompt-btn bg-white border border-gray-300 text-gray-700 text-xs font-medium py-1 px-3 rounded-full hover:bg-gray-200 transition">Use bullet points for my job</button>
+                         </div>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-2">Or, type your own request below:</p>
+                    <div class="space-y-4">
+                        <textarea id="ai-prompt" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" rows="4" placeholder="e.g., Change the layout to be single-column..."></textarea>
+                        <button id="modify-btn" class="w-full bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700 transition-transform transform hover:scale-105 flex items-center justify-center shadow-md">
+                            <span id="modify-btn-text">Modify with AI</span>
+                            <div id="loader" class="loader hidden ml-3"></div>
+                        </button>
+                    </div>
+                     <button id="start-over-btn" class="w-full mt-4 bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition">
+                        <i class="fas fa-edit mr-2"></i>Edit Details or Start Over
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Resume Details -->
+    <div id="resume-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden transition-opacity duration-300">
+        <div class="modal-content bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <form id="resume-form" class="p-8">
+                <div class="flex justify-between items-center border-b pb-4 mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900">Enter Your Details</h2>
+                    <button type="button" id="close-modal-btn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+                </div>
+                
+                <!-- Form Sections -->
+                <div class="space-y-6">
+                    <!-- Personal Details -->
+                    <fieldset class="border p-4 rounded-lg">
+                        <legend class="text-lg font-semibold px-2">Personal Details</legend>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                            <input type="text" name="name" placeholder="Full Name" class="w-full p-3 border rounded-lg md:col-span-2" required>
+                            <input type="email" name="email" placeholder="Email Address" class="w-full p-3 border rounded-lg" required>
+                            <input type="tel" name="phone" placeholder="Phone Number" class="w-full p-3 border rounded-lg">
+                            <input type="url" name="linkedin" placeholder="LinkedIn Profile URL" class="w-full p-3 border rounded-lg md:col-span-2">
+                            <div class="md:col-span-2 grid grid-cols-3 items-center gap-4">
+                                <label for="profile-picture" class="text-sm font-medium text-gray-700 col-span-1">Profile Picture:</label>
+                                <input type="file" name="profile_picture" id="profile-picture" class="col-span-2 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" accept="image/*">
+                                <img id="image-preview" src="" alt="Image Preview" class="hidden w-24 h-24 rounded-full object-cover col-start-2 mt-2"/>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <!-- Professional Summary -->
+                    <fieldset class="border p-4 rounded-lg">
+                        <legend class="text-lg font-semibold px-2">Professional Summary</legend>
+                        <textarea name="summary" class="w-full p-3 border rounded-lg" rows="4" placeholder="Write a brief summary about your professional background..."></textarea>
+                    </fieldset>
+
+                    <!-- Work Experience -->
+                    <div id="experience-section">
+                        <fieldset class="border p-4 rounded-lg">
+                            <legend class="text-lg font-semibold px-2">Work Experience</legend>
+                             <div class="space-y-4 experience-entry">
+                                <input type="text" name="job_title" placeholder="Job Title" class="w-full p-3 border rounded-lg">
+                                <input type="text" name="company" placeholder="Company" class="w-full p-3 border rounded-lg">
+                                <input type="text" name="job_dates" placeholder="Dates (e.g., Jan 2020 - Present)" class="w-full p-3 border rounded-lg">
+                                <textarea name="job_desc" class="w-full p-3 border rounded-lg" rows="3" placeholder="Key responsibilities and achievements..."></textarea>
+                             </div>
+                        </fieldset>
+                    </div>
+
+                    <!-- Education -->
+                     <div id="education-section">
+                        <fieldset class="border p-4 rounded-lg">
+                            <legend class="text-lg font-semibold px-2">Education</legend>
+                             <div class="space-y-4 education-entry">
+                                <input type="text" name="degree" placeholder="Degree (e.g., B.S. in Computer Science)" class="w-full p-3 border rounded-lg">
+                                <input type="text" name="university" placeholder="University Name" class="w-full p-3 border rounded-lg">
+                                <input type="text" name="edu_dates" placeholder="Dates (e.g., Aug 2016 - May 2020)" class="w-full p-3 border rounded-lg">
+                             </div>
+                        </fieldset>
+                    </div>
+
+                    <!-- Skills -->
+                    <fieldset class="border p-4 rounded-lg">
+                        <legend class="text-lg font-semibold px-2">Skills</legend>
+                        <input type="text" name="skills" class="w-full p-3 border rounded-lg" placeholder="Comma-separated skills (e.g., JavaScript, React, Node.js)">
+                    </fieldset>
+
+                    <!-- Extra Details Container -->
+                    <div id="extra-details-container" class="space-y-4"></div>
+
+                    <!-- Add Extra Detail Button -->
+                    <button type="button" id="add-extra-btn" class="w-full border-2 border-dashed border-gray-400 text-gray-600 font-semibold py-3 px-6 rounded-lg hover:bg-gray-100 transition">
+                        <i class="fas fa-plus mr-2"></i>Add Custom Section (e.g., Projects, Certifications)
+                    </button>
+                </div>
+
+                <!-- Form Submission -->
+                <div class="mt-8 pt-6 border-t">
+                     <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700 transition shadow-md">
+                        Next <i class="fas fa-arrow-right ml-2"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Generation Choice Modal -->
+    <div id="generation-choice-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden">
+        <div class="modal-content bg-white rounded-2xl shadow-2xl w-full max-w-md text-center p-8">
+             <div id="generation-loader">
+                <div class="loader mx-auto mb-4" style="width: 48px; height: 48px; border-width: 5px;"></div>
+                <p class="font-semibold text-lg text-gray-700">Generating Your Designs...</p>
+                <p class="text-gray-500">Please wait a moment.</p>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // DOM Elements
+            const openModalBtn = document.getElementById('open-modal-btn');
+            const closeModalBtn = document.getElementById('close-modal-btn');
+            const resumeModal = document.getElementById('resume-modal');
+            const generationChoiceModal = document.getElementById('generation-choice-modal');
+            const resumeForm = document.getElementById('resume-form');
+            const addExtraBtn = document.getElementById('add-extra-btn');
+            const extraDetailsContainer = document.getElementById('extra-details-container');
+            const resumeOutput = document.getElementById('resume-content');
+            const initialView = document.getElementById('initial-view');
+            const resumeView = document.getElementById('resume-view');
+            const modifyBtn = document.getElementById('modify-btn');
+            const aiPrompt = document.getElementById('ai-prompt');
+            const loader = document.getElementById('loader');
+            const modifyBtnText = document.getElementById('modify-btn-text');
+            const startOverBtn = document.getElementById('start-over-btn');
+            const profilePicInput = document.getElementById('profile-picture');
+            const imagePreview = document.getElementById('image-preview');
+            const printBtn = document.getElementById('print-btn');
+            const randomResumeBtn = document.getElementById('random-resume-btn');
+            const designDropdownBtn = document.getElementById('design-dropdown-btn');
+            const designDropdownMenu = document.getElementById('design-dropdown-menu');
+            const designOptionsContainer = document.getElementById('design-options-container');
+            const selectedDesignText = document.getElementById('selected-design-text');
+            
+            let resumeData = {};
+            let profilePicBase64 = '';
+            let generatedDesigns = {}; // { classic: '...', modern: '...', ai: '...' }
+            let currentView = 'classic'; 
+
+            const mockResumeData = {
+                name: 'Alex Doe',
+                email: 'alex.doe@example.com',
+                phone: '123-456-7890',
+                linkedin: 'https://linkedin.com/in/alexdoe',
+                summary: 'A highly motivated and results-oriented Software Engineer with over 5 years of experience in developing, testing, and maintaining web applications. Proficient in JavaScript, React, and Node.js. Seeking to leverage strong technical skills to contribute to a challenging and innovative environment.',
+                job_title: 'Senior Software Engineer',
+                company: 'Tech Solutions Inc.',
+                job_dates: 'Jan 2020 - Present',
+                job_desc: 'Lead the development of a new customer-facing dashboard using React and Redux.\nArchitected and implemented a new RESTful API service with Node.js and Express.\nMentored junior developers and conducted code reviews to ensure code quality.',
+                degree: 'B.S. in Computer Science',
+                university: 'State University',
+                edu_dates: 'Aug 2011 - May 2015',
+                skills: 'JavaScript, React, Node.js, Express, MongoDB, HTML, CSS, Git',
+                'extra-1678886400000-title': 'Projects',
+                'extra-1678886400000-content': 'Project Titan: A full-stack e-commerce application built with the MERN stack. Features include user authentication, product catalog, shopping cart, and payment integration.'
+            };
+            const mockProfilePic = 'https://placehold.co/150x150/3b82f6/FFFFFF?text=AD';
+
+            // --- Template Definitions ---
+            const templates = {
+                classic: { name: 'Classic Professional', generator: generateClassicTemplate },
+                modern: { name: 'Modern Minimalist', generator: generateModernTemplate }
+            };
+
+            // --- Modal & UI Logic ---
+            const showModal = (modal) => modal.classList.remove('hidden');
+            const hideModal = (modal) => modal.classList.add('hidden');
+
+            openModalBtn.addEventListener('click', () => showModal(resumeModal));
+            closeModalBtn.addEventListener('click', () => hideModal(resumeModal));
+            startOverBtn.addEventListener('click', () => {
+                resumeForm.reset();
+                imagePreview.classList.add('hidden');
+                profilePicBase64 = '';
+                extraDetailsContainer.innerHTML = '';
+                showModal(resumeModal);
+            });
+            resumeModal.addEventListener('click', (e) => e.target === resumeModal && hideModal(resumeModal));
+
+            designDropdownBtn.addEventListener('click', () => designDropdownMenu.classList.toggle('hidden'));
+            document.addEventListener('click', (e) => {
+                if (!designDropdownBtn.contains(e.target) && !designDropdownMenu.contains(e.target)) {
+                    designDropdownMenu.classList.add('hidden');
+                }
+            });
+
+             // --- Image Preview Logic ---
+            profilePicInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        profilePicBase64 = event.target.result;
+                        imagePreview.src = profilePicBase64;
+                        imagePreview.classList.remove('hidden');
+                    }
+                    reader.readAsDataURL(file);
+                } else {
+                    profilePicBase64 = '';
+                    imagePreview.classList.add('hidden');
+                }
+            });
+
+            // --- Dynamic Form Fields ---
+            addExtraBtn.addEventListener('click', () => {
+                const newFieldId = `extra-${Date.now()}`;
+                const newField = document.createElement('div');
+                newField.className = 'border p-4 rounded-lg relative extra-field';
+                newField.innerHTML = `
+                    <button type="button" class="absolute top-2 right-2 text-red-500 hover:text-red-700" onclick="this.parentElement.remove()">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                    <input type="text" name="${newFieldId}-title" placeholder="Section Title (e.g., Projects)" class="w-full p-3 border rounded-lg mb-2 text-lg font-semibold">
+                    <textarea name="${newFieldId}-content" class="w-full p-3 border rounded-lg" rows="4" placeholder="Section Content..."></textarea>
+                `;
+                extraDetailsContainer.appendChild(newField);
+            });
+
+            // --- Resume Generation Flow ---
+            resumeForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const formData = new FormData(resumeForm);
+                resumeData = {};
+                formData.forEach((value, key) => {
+                    if (key !== 'profile_picture') {
+                        resumeData[key] = value;
+                    }
+                });
+                generatedDesigns = {};
+                hideModal(resumeModal);
+                generateAndDisplayResumes(resumeData, profilePicBase64, 'classic');
+            });
+
+            randomResumeBtn.addEventListener('click', () => {
+                resumeData = mockResumeData;
+                profilePicBase64 = mockProfilePic;
+                generateAndDisplayResumes(resumeData, profilePicBase64, 'classic');
+            });
+            
+            async function generateAndDisplayResumes(data, image, initialDesign) {
+                showModal(generationChoiceModal);
+                randomResumeBtn.disabled = true;
+                openModalBtn.disabled = true;
+
+                const generationPromises = [];
+                // Generate all template versions
+                for (const [key, template] of Object.entries(templates)) {
+                    generatedDesigns[key] = template.generator(data, image);
+                }
+
+                // Generate AI version
+                generationPromises.push(generateAiResumeHtml(data, image).then(html => {
+                    generatedDesigns['ai'] = html;
+                }).catch(e => {
+                    console.error("Failed to generate AI resume, a template will be used as a fallback.", e);
+                    generatedDesigns['ai'] = generatedDesigns.classic; // Fallback
+                }));
+
+                await Promise.all(generationPromises);
+
+                populateDesignDropdown();
+                switchDesign(initialDesign);
+                
+                hideModal(generationChoiceModal);
+                initialView.classList.add('hidden');
+                resumeView.classList.remove('hidden');
+                window.scrollTo(0, 0);
+
+                randomResumeBtn.disabled = false;
+                openModalBtn.disabled = false;
+            }
+            
+            function populateDesignDropdown() {
+                designOptionsContainer.innerHTML = '';
+                for (const [key, template] of Object.entries(templates)) {
+                    const a = document.createElement('a');
+                    a.href = '#';
+                    a.className = 'design-option text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100';
+                    a.dataset.design = key;
+                    a.textContent = `Template: ${template.name}`;
+                    designOptionsContainer.appendChild(a);
+                }
+                 const divider = document.createElement('div');
+                 divider.className = 'border-t border-gray-200';
+                 designOptionsContainer.appendChild(divider);
+
+                const aiOption = document.createElement('a');
+                aiOption.href = '#';
+                aiOption.className = 'design-option text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100';
+                aiOption.dataset.design = 'ai';
+                aiOption.innerHTML = `<i class="fas fa-magic-wand-sparkles text-blue-500 mr-2"></i> AI Generated Design`;
+                designOptionsContainer.appendChild(aiOption);
+                
+                document.querySelectorAll('.design-option').forEach(option => {
+                    option.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        switchDesign(e.currentTarget.dataset.design);
+                        designDropdownMenu.classList.add('hidden');
+                    });
+                });
+            }
+
+            function switchDesign(designKey) {
+                currentView = designKey;
+                resumeOutput.innerHTML = generatedDesigns[designKey];
+                
+                let buttonText = '';
+                if (designKey === 'ai') {
+                    buttonText = 'AI Generated Design';
+                } else {
+                    buttonText = `Template: ${templates[designKey].name}`;
+                }
+                selectedDesignText.textContent = buttonText;
+            }
+
+            // --- Template HTML Generators ---
+            function generateClassicTemplate(data, imageBase64) {
+                const picHtml = imageBase64 ? `<img src="${imageBase64}" alt="Profile Picture" class="profile-pic">` : '';
+                let skillsHtml = '';
+                if(data.skills) {
+                    skillsHtml = data.skills.split(',').map(skill => `<span class="inline-block rounded-full px-3 py-1 text-sm font-semibold text-white mr-2 mb-2">${skill.trim()}</span>`).join('');
+                }
+                const extraSectionsHtml = Object.keys(data)
+                    .filter(key => key.startsWith('extra-') && key.endsWith('-title'))
+                    .map(key => {
+                        const id = key.replace('-title', '');
+                        const title = data[key];
+                        const content = data[`${id}-content`]?.replace(/\n/g, '<br>');
+                        if (!title || !content) return '';
+                        return `<h2>${title}</h2><div>${content}</div>`;
+                    }).join('');
+                return `
+                <div class="template-classic">
+                    <div class="resume-body">
+                        <div class="resume-container">
+                            <div class="resume-sidebar">
+                                ${picHtml}
+                                <div class="text-center mb-6">
+                                    <h1 class="font-bold text-2xl text-white">${data.name || 'Your Name'}</h1>
+                                </div>
+                                <div>
+                                    <h2 class="font-bold">Contact</h2>
+                                    ${data.phone ? `<div class="contact-item"><i class="fas fa-phone fa-fw"></i><span>${data.phone}</span></div>` : ''}
+                                    ${data.email ? `<div class="contact-item"><i class="fas fa-envelope fa-fw"></i><a href="mailto:${data.email}" class="hover:underline break-all">${data.email}</a></div>` : ''}
+                                    ${data.linkedin ? `<div class="contact-item"><i class="fab fa-linkedin fa-fw"></i><a href="${data.linkedin}" target="_blank" class="hover:underline break-all">LinkedIn</a></div>` : ''}
+                                </div>
+                                ${skillsHtml ? `<div class="mt-6"><h2 class="font-bold">Skills</h2><div class="skills-container">${skillsHtml}</div></div>` : ''}
+                            </div>
+                            <div class="resume-main">
+                                ${data.summary ? `<div><h2><i class="fas fa-user-circle mr-2"></i>Summary</h2><p>${data.summary}</p></div>` : ''}
+                                ${data.job_title ? `<div><h2><i class="fas fa-briefcase mr-2"></i>Work Experience</h2><h3>${data.job_title} at ${data.company}</h3><p class="text-slate-500 text-sm"><em>${data.job_dates}</em></p><ul>${data.job_desc.split('\\n').map(line => `<li>${line}</li>`).join('')}</ul></div>` : ''}
+                                ${data.degree ? `<div><h2><i class="fas fa-graduation-cap mr-2"></i>Education</h2><h3>${data.degree}</h3><p>${data.university}</p><p class="text-slate-500 text-sm"><em>${data.edu_dates}</em></p></div>` : ''}
+                                ${extraSectionsHtml}
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            }
+
+            function generateModernTemplate(data, imageBase64) {
+                const picHtml = imageBase64 ? `<img src="${imageBase64}" alt="Profile Picture" class="profile-pic">` : '';
+                 let skillsHtml = '';
+                if(data.skills) {
+                    skillsHtml = data.skills.split(',').map(skill => `<span class="inline-block rounded-full px-3 py-1 text-sm font-semibold mr-2 mb-2">${skill.trim()}</span>`).join('');
+                }
+                const extraSectionsHtml = Object.keys(data)
+                    .filter(key => key.startsWith('extra-') && key.endsWith('-title'))
+                    .map(key => {
+                        const id = key.replace('-title', '');
+                        const title = data[key];
+                        const content = data[`${id}-content`]?.replace(/\n/g, '<br>');
+                        if (!title || !content) return '';
+                        return `<div><h2>${title}</h2><div>${content}</div></div>`;
+                    }).join('');
+                return `
+                <div class="template-modern">
+                    <div class="resume-body">
+                        <div class="resume-container">
+                            ${picHtml}
+                            <div class="resume-header">
+                                <h1>${data.name || 'Your Name'}</h1>
+                                <div class="contact-info">
+                                    ${data.phone ? `<span><i class="fas fa-phone fa-fw mr-1"></i>${data.phone}</span>` : ''}
+                                    ${data.email ? `<span><i class="fas fa-envelope fa-fw mr-1"></i><a href="mailto:${data.email}">${data.email}</a></span>` : ''}
+                                    ${data.linkedin ? `<span><i class="fab fa-linkedin fa-fw mr-1"></i><a href="${data.linkedin}" target="_blank">LinkedIn</a></span>` : ''}
+                                </div>
+                            </div>
+                            <div class="resume-main">
+                                ${data.summary ? `<div><h2>Summary</h2><p>${data.summary}</p></div>` : ''}
+                                ${data.job_title ? `<div><h2>Work Experience</h2><div class="job-header"><h3>${data.job_title} at ${data.company}</h3><em>${data.job_dates}</em></div><ul>${data.job_desc.split('\\n').map(line => `<li>${line}</li>`).join('')}</ul></div>` : ''}
+                                ${data.degree ? `<div><h2>Education</h2><div class="job-header"><h3>${data.degree}</h3><em>${data.edu_dates}</em></div><p>${data.university}</p></div>` : ''}
+                                ${skillsHtml ? `<div><h2>Skills</h2><div class="skills-container">${skillsHtml}</div></div>` : ''}
+                                ${extraSectionsHtml}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                `
+            }
+
+            async function generateAiResumeHtml(data, imageBase64) {
+                const systemPrompt = `You are an expert resume designer. Create a modern, professional, and visually appealing resume in HTML based on the user's data. Your entire response MUST be ONLY the HTML code for the resume content. Use inline CSS for styling to ensure the design is self-contained. IMPORTANT: Include a placeholder comment \`<!-- PROFILE_PICTURE_HERE -->\` where the profile picture should go. The profile picture itself should be a circle. Format phone numbers, emails, and links correctly with icons from Font Awesome. Do not use a two-column layout unless it looks clean and modern.`;
+                const userDataString = Object.entries(data).map(([key, value]) => `${key.replace(/_/g, ' ')}: ${value}`).join('\n');
+                const fullUserQuery = `Generate a resume with the following information:\n\n${userDataString}`;
+                const responseText = await callGeminiAPI(fullUserQuery, systemPrompt);
+                let cleanedHtml = cleanupAIResponse(responseText);
+                if (imageBase64) {
+                    const imgTag = `<img src="${imageBase64}" alt="Profile Picture" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 4px solid #3b82f6; margin: 0 auto 1rem; display: block;">`;
+                    cleanedHtml = cleanedHtml.replace('<!-- PROFILE_PICTURE_HERE -->', imgTag);
+                }
+                return cleanedHtml;
+            }
+            
+            // --- AI Modification Logic ---
+            async function modifyResumeWithAI() {
+                const userPrompt = aiPrompt.value.trim();
+                const currentResumeHTML = resumeOutput.innerHTML;
+                if (!userPrompt) { alert("Please enter a modification request for the AI."); return; }
+
+                loader.classList.remove('hidden');
+                modifyBtnText.textContent = 'Processing...';
+                modifyBtn.disabled = true;
+
+                const systemPrompt = `You are an expert resume editor and designer. A user will provide their current resume in HTML format and a request for modification. Your task is to rewrite the resume according to the user's request.
+                - If the request is about CONTENT (e.g., "rewrite my summary", "make it more professional"), focus on changing the text.
+                - If the request is about DESIGN (e.g., "change the color to blue", "use a different font", "make the headings bigger"), focus on modifying the inline CSS styles and/or HTML structure.
+                - Your response MUST be ONLY the updated, complete resume in HTML format. Do not include any other text, markdown, or explanations.`;
+                const fullUserQuery = `User's modification request: "${userPrompt}"\n\nCurrent Resume HTML:\n\`\`\`html\n${currentResumeHTML}\n\`\`\``;
+                
+                try {
+                    const responseText = await callGeminiAPI(fullUserQuery, systemPrompt);
+                    if (responseText) {
+                        const cleanedHtml = cleanupAIResponse(responseText);
+                        resumeOutput.innerHTML = cleanedHtml;
+                        generatedDesigns[currentView] = cleanedHtml; // Update cache
+                        aiPrompt.value = '';
+                    } else { throw new Error("Received empty response from AI."); }
+                } catch (error) {
+                    console.error("Error modifying resume with AI:", error);
+                    alert("Sorry, there was an error communicating with the AI. Please try again.");
+                } finally {
+                    loader.classList.add('hidden');
+                    modifyBtnText.textContent = 'Modify with AI';
+                    modifyBtn.disabled = false;
+                }
+            }
+
+            modifyBtn.addEventListener('click', modifyResumeWithAI);
+            document.querySelectorAll('.quick-prompt-btn').forEach(btn => {
+                btn.addEventListener('click', () => { aiPrompt.value = btn.textContent; aiPrompt.focus(); });
+            });
+
+            function cleanupAIResponse(text) { return text.replace(/```html\n?|```/g, '').trim(); }
+
+            async function callGeminiAPI(userQuery, systemPrompt) {
+                 const apiKey = ""; // API key is handled by the environment
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                const payload = {
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                };
+                return await fetchWithExponentialBackoff(apiUrl, payload);
+            }
+            
+            async function fetchWithExponentialBackoff(url, payload, maxRetries = 5) {
+                let attempt = 0;
+                while (attempt < maxRetries) {
+                    try {
+                        const response = await fetch(url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                        const result = await response.json();
+                        const candidate = result.candidates?.[0];
+                        if (candidate && candidate.content?.parts?.[0]?.text) {
+                            return candidate.content.parts[0].text;
+                        } else {
+                           throw new Error('Invalid AI response structure: ' + JSON.stringify(result));
+                        }
+                    } catch (error) {
+                        console.warn(`Attempt ${attempt + 1} failed. Retrying in ${2 ** attempt}s...`, error);
+                        attempt++;
+                        if (attempt < maxRetries) {
+                            await new Promise(resolve => setTimeout(resolve, (2 ** (attempt - 1)) * 1000));
+                        } else { throw error; }
+                    }
+                }
+                return null;
+            }
+            
+            // --- Print Logic ---
+            printBtn.addEventListener('click', () => {
+                const printContent = resumeOutput.innerHTML;
+                const printWindow = window.open('', '_blank');
+                printWindow.document.write('<html><head><title>Print Resume</title>');
+                printWindow.document.write('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">');
+                printWindow.document.write('<style> body { margin: 0; -webkit-print-color-adjust: exact !important; color-adjust: exact !important; } </style>');
+                printWindow.document.write('</head><body>');
+                printWindow.document.write(printContent);
+                printWindow.document.write('</body></html>');
+                printWindow.document.close();
+                printWindow.focus();
+                setTimeout(() => {
+                    printWindow.print();
+                    printWindow.close();
+                }, 250);
+            });
+        });
+    </script>
+</body>
+</html>
+

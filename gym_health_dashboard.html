@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gym Health Dashboard</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Custom Styles -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827; /* Dark Gray */
+        }
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4f46e5; /* Indigo */
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4338ca;
+        }
+        /* Style for the active tab */
+        .tab-active {
+            background-color: #4f46e5;
+            color: white;
+        }
+        /* Animation for content fade-in */
+        .content-fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Custom progress bar styles */
+        .progress-bar-container {
+            background-color: #374151; /* gray-700 */
+            border-radius: 0.5rem;
+            overflow: hidden;
+            height: 24px;
+        }
+        .progress-bar {
+            height: 100%;
+            border-radius: 0.5rem;
+            transition: width 0.5s ease-in-out, background-color 0.5s ease-in-out;
+            text-align: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.875rem;
+            line-height: 24px;
+        }
+        /* Water tracker visualizer styles */
+        #water-visualizer {
+            width: 150px;
+            height: 300px;
+            border: 4px solid #4B5563; /* gray-600 */
+            border-top: none;
+            border-radius: 0 0 20px 20px;
+            position: relative;
+            background-color: #1F2937; /* gray-800 */
+            overflow: hidden;
+        }
+        #water-fill {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            background-color: #3B82F6; /* blue-500 */
+            transition: height 0.5s ease-out;
+            border-radius: 0 0 16px 16px;
+        }
+    </style>
+</head>
+<body class="text-gray-200">
+
+    <!-- Auth Container -->
+    <div id="auth-container" class="min-h-screen flex items-center justify-center p-4">
+        <div class="w-full max-w-md bg-gray-800 rounded-xl shadow-lg p-8">
+            <h1 class="text-3xl font-extrabold text-white text-center mb-2">
+                 <span class="bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-purple-500">
+                    Gym Health Dashboard
+                </span>
+            </h1>
+            <p id="auth-form-title" class="text-center text-gray-400 mb-6">Login to continue</p>
+            <form id="auth-form">
+                <div class="space-y-4">
+                    <div>
+                        <label for="email" class="block mb-2 text-sm font-medium text-gray-300">Email</label>
+                        <input type="email" id="email" class="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded-lg p-2.5" placeholder="you@example.com" required>
+                    </div>
+                     <div>
+                        <label for="password" class="block mb-2 text-sm font-medium text-gray-300">Password</label>
+                        <input type="password" id="password" class="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded-lg p-2.5" placeholder="••••••••" required>
+                    </div>
+                </div>
+                <div id="auth-feedback" class="text-red-400 text-sm mt-4 text-center h-5"></div>
+                <button type="submit" id="auth-submit-btn" class="w-full mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-lg">Login</button>
+            </form>
+            <p class="text-center text-sm text-gray-400 mt-6">
+                <span id="auth-toggle-text">Don't have an account?</span>
+                <button id="auth-toggle-btn" class="font-semibold text-indigo-400 hover:underline">Register</button>
+            </p>
+        </div>
+    </div>
+    
+    <!-- App Container -->
+    <div id="app-container" class="hidden container mx-auto p-4 md:p-8 max-w-7xl">
+
+        <!-- Header -->
+        <header class="mb-8">
+            <div class="flex flex-col md:flex-row justify-between items-center text-center md:text-left">
+                 <div>
+                    <h1 class="text-4xl md:text-5xl font-extrabold text-white tracking-tight">
+                        <span class="bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-purple-500">
+                            Gym Health Dashboard
+                        </span>
+                    </h1>
+                    <p class="mt-2 text-lg text-gray-400">Your all-in-one fitness and nutrition companion.</p>
+                </div>
+                <div class="mt-4 md:mt-0">
+                    <p class="text-sm text-gray-400 mb-1">Logged in as:</p>
+                    <p id="user-email" class="font-semibold text-white"></p>
+                    <button id="logout-btn" class="mt-2 text-sm text-red-400 hover:underline">Logout</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Tabs Navigation -->
+        <nav class="mb-8 bg-gray-800 rounded-lg p-2 flex flex-wrap justify-center gap-2">
+            <button data-tab="workouts" class="tab-btn tab-active px-4 py-2 text-sm md:text-base font-semibold rounded-md transition-all duration-300">Workout Routines</button>
+            <button data-tab="tracker" class="tab-btn px-4 py-2 text-sm md:text-base font-semibold rounded-md transition-all duration-300">Workout Tracker</button>
+            <button data-tab="calories" class="tab-btn px-4 py-2 text-sm md:text-base font-semibold rounded-md transition-all duration-300">Calorie Calculator</button>
+            <button data-tab="diet" class="tab-btn px-4 py-2 text-sm md:text-base font-semibold rounded-md transition-all duration-300">Diet Tracker</button>
+            <button data-tab="bmi" class="tab-btn px-4 py-2 text-sm md:text-base font-semibold rounded-md transition-all duration-300">BMI Calculator</button>
+            <button data-tab="water" class="tab-btn px-4 py-2 text-sm md:text-base font-semibold rounded-md transition-all duration-300">Water Goal</button>
+            <button data-tab="water_tracker" class="tab-btn px-4 py-2 text-sm md:text-base font-semibold rounded-md transition-all duration-300">Water Tracker</button>
+            <button data-tab="onerepmax" class="tab-btn px-4 py-2 text-sm md:text-base font-semibold rounded-md transition-all duration-300">One-Rep Max</button>
+            <button data-tab="ai_assistant" class="tab-btn px-4 py-2 text-sm md:text-base font-semibold rounded-md transition-all duration-300">AI Assistant</button>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main id="content-area">
+
+            <!-- Workout Routines Section -->
+            <section id="workouts" class="tab-content content-fade-in">
+                <div class="bg-gray-800 p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4 text-indigo-400">Workout Routine Generator</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div>
+                            <label for="muscle-group" class="block mb-2 text-sm font-medium text-gray-300">Select Muscle Group:</label>
+                            <select id="muscle-group" class="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 p-2.5">
+                                <option value="chest">Chest</option>
+                                <option value="back">Back</option>
+                                <option value="legs">Legs</option>
+                                <option value="shoulders">Shoulders</option>
+                                <option value="arms">Arms (Biceps & Triceps)</option>
+                                <option value="full_body">Full Body</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-2 flex items-end">
+                            <button id="generate-workout-btn" class="w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-lg transition-colors duration-300">Generate Workout</button>
+                        </div>
+                    </div>
+                    <div id="workout-result" class="mt-6 bg-gray-900 p-4 rounded-lg min-h-[200px]">
+                        <!-- Workout routine will be displayed here -->
+                        <p class="text-gray-400">Select a muscle group and click "Generate Workout" to see your routine.</p>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Workout Tracker Section -->
+            <section id="tracker" class="tab-content hidden content-fade-in">
+                <div class="bg-gray-800 p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4 text-indigo-400">Live Workout Tracker</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div>
+                            <label for="tracker-muscle-group" class="block mb-2 text-sm font-medium text-gray-300">Select Today's Workout:</label>
+                            <select id="tracker-muscle-group" class="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 p-2.5">
+                                <option value="chest">Chest</option>
+                                <option value="back">Back</option>
+                                <option value="legs">Legs</option>
+                                <option value="shoulders">Shoulders</option>
+                                <option value="arms">Arms (Biceps & Triceps)</option>
+                                <option value="full_body">Full Body</option>
+                            </select>
+                        </div>
+                        <div class="flex items-end">
+                             <button id="reset-workout-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 px-6 rounded-lg transition-colors duration-300">Reset Workout</button>
+                        </div>
+                    </div>
+                    <div id="workout-tracker-list" class="mt-6 bg-gray-900 p-4 rounded-lg space-y-3">
+                        <!-- Workout tracker checklist will be displayed here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Calorie Calculator Section -->
+            <section id="calories" class="tab-content hidden content-fade-in">
+                <div class="bg-gray-800 p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4 text-indigo-400">Calorie & Macro Calculator</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div>
+                            <label for="age" class="block mb-2 text-sm font-medium text-gray-300">Age</label>
+                            <input type="number" id="age" class="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded-lg p-2.5" placeholder="e.g., 25">
+                        </div>
+                        <div>
+                            <label for="gender" class="block mb-2 text-sm font-medium text-gray-300">Gender</label>
+                            <select id="gender" class="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded-lg p-2.5">
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="weight-cal" class="block mb-2 text-sm font-medium text-gray-300">Weight (kg)</label>
+                            <input type="number" id="weight-cal" class="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded-lg p-2.5" placeholder="e.g., 70">
+                        </div>
+                        <div>
+                            <label for="height-cal" class="block mb-2 text-sm font-medium text-gray-300">Height (cm)</label>
+                            <input type="number" id="height-cal" class="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded-lg p-2.5" placeholder="e.g., 175">
+                        </div>
+                        <div class="md:col-span-2 lg:col-span-4">
+                             <label for="activity-level" class="block mb-2 text-sm font-medium text-gray-300">Activity Level</label>
+                            <select id="activity-level" class="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded-lg p-2.5">
+                                <option value="1.2">Sedentary (little or no exercise)</option>
+                                <option value="1.375">Lightly active (light exercise/sports 1-3 days/week)</option>
+                                <option value="1.55">Moderately active (moderate exercise/sports 3-5 days/week)</option>
+                                <option value="1.725">Very active (hard exercise/sports 6-7 days a week)</option>
+                                <option value="1.9">Extra active (very hard exercise/physical job)</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-2 lg:col-span-4">
+                            <button id="calculate-calories-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-lg transition-colors duration-300 mt-4">Calculate</button>
+                        </div>
+                    </div>
+                    <div id="calories-result" class="mt-6 bg-gray-900 p-4 rounded-lg">
+                        <!-- Calorie results will be displayed here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Diet Tracker Section -->
+            <section id="diet" class="tab-content hidden content-fade-in">
+                <div class="bg-gray-800 p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4 text-indigo-400">Daily Diet Tracker</h2>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <!-- Left Column: Input -->
+                        <div>
+                            <!-- Manual Entry -->
+                            <div class="bg-gray-900 p-4 rounded-lg mb-6">
+                                <h3 class="text-lg font-semibold mb-3 text-white">Log Food Manually</h3>
+                                <div class="space-y-4">
+                                    <div>
+                                        <label for="food-name" class="block mb-2 text-sm font-medium text-gray-300">Food / Meal</label>
+                                        <input type="text" id="food-name" class="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded-lg p-2.5" placeholder="e.g., Chicken Salad">
+                                    </div>
+                                    <div>
+                                        <label for="food-calories" class="block mb-2 text-sm font-medium text-gray-300">Calories (kcal)</label>
+                                        <input type="number" id="food-calories" class="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded-lg p-2.5" placeholder="e.g., 350">
+                                    </div>
+                                    <button id="add-food-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-lg">Add to Log</button>
+                                    <div id="manual-entry-feedback" class="text-red-400 text-sm mt-2 text-center h-4"></div>
+                                </div>
+                            </div>
+            
+                            <!-- AI Estimator -->
+                            <div class="bg-gray-900 p-4 rounded-lg">
+                                <h3 class="text-lg font-semibold mb-3 text-white">Get Calories with AI</h3>
+                                <div class="space-y-4">
+                                     <div>
+                                        <label for="food-image" class="block mb-2 text-sm font-medium text-gray-300">Upload Food Image</label>
+                                        <input type="file" id="food-image" accept="image/*" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer">
+                                    </div>
+                                    <div id="image-preview" class="hidden w-full h-48 bg-gray-700 rounded-lg flex items-center justify-center"></div>
+                                    <button id="estimate-calories-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 px-6 rounded-lg transition-colors duration-300">Estimate with AI</button>
+                                    <div id="ai-result-area" class="text-center text-gray-400 min-h-[24px]"></div>
+                                </div>
+                            </div>
+                        </div>
+            
+                        <!-- Right Column: Log -->
+                        <div class="bg-gray-900 p-4 rounded-lg">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-lg font-semibold text-white">Today's Log</h3>
+                                <button id="clear-log-btn" class="text-sm text-red-400 hover:text-red-500 font-semibold">Clear Log</button>
+                            </div>
+
+                             <!-- Calorie Goal Tracker -->
+                            <div class="mb-4 p-4 bg-gray-800 rounded-lg text-center space-y-3">
+                                <div class="flex justify-between items-baseline">
+                                    <p class="text-gray-300">Consumed: <span id="total-calories" class="font-bold text-white">0</span> kcal</p>
+                                    <p class="text-gray-300">Goal: <span id="calorie-goal" class="font-bold text-white">2000</span> kcal</p>
+                                </div>
+                                <div class="progress-bar-container">
+                                    <div id="calorie-progress-bar" class="progress-bar bg-green-600" style="width: 0%;"></div>
+                                </div>
+                                <p id="calorie-status-message" class="text-sm font-medium text-gray-400 h-5">Set a goal from the Calorie Calculator!</p>
+                            </div>
+
+                            <ul id="food-log-list" class="space-y-2 max-h-80 overflow-y-auto pr-2">
+                                <!-- Logged items will appear here -->
+                                <li class="text-center text-gray-500 pt-8">Your food log is empty.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- BMI Calculator Section -->
+            <section id="bmi" class="tab-content hidden content-fade-in">
+                <div class="bg-gray-800 p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4 text-indigo-400">BMI Calculator</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="weight-bmi" class="block mb-2 text-sm font-medium text-gray-300">Weight (kg)</label>
+                            <input type="number" id="weight-bmi" class="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded-lg p-2.5" placeholder="e.g., 70">
+                        </div>
+                        <div>
+                            <label for="height-bmi" class="block mb-2 text-sm font-medium text-gray-300">Height (cm)</label>
+                            <input type="number" id="height-bmi" class="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded-lg p-2.5" placeholder="e.g., 175">
+                        </div>
+                        <div class="md:col-span-2">
+                             <button id="calculate-bmi-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-lg transition-colors duration-300 mt-4">Calculate BMI</button>
+                        </div>
+                    </div>
+                    <div id="bmi-result" class="mt-6 bg-gray-900 p-4 rounded-lg min-h-[100px]">
+                        <!-- BMI result will be displayed here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Water Goal Section -->
+            <section id="water" class="tab-content hidden content-fade-in">
+                <div class="bg-gray-800 p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4 text-indigo-400">Daily Water Intake Goal</h2>
+                    <p class="text-gray-400 mb-4">A general guideline is to drink 35ml of water for every 1kg of body weight.</p>
+                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="weight-water" class="block mb-2 text-sm font-medium text-gray-300">Your Weight (kg)</label>
+                            <input type="number" id="weight-water" class="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded-lg p-2.5" placeholder="e.g., 70">
+                        </div>
+                        <div class="flex items-end">
+                             <button id="calculate-water-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-lg transition-colors duration-300">Calculate Goal</button>
+                        </div>
+                    </div>
+                    <div id="water-result" class="mt-6 bg-gray-900 p-4 rounded-lg min-h-[100px]">
+                        <!-- Water intake result will be displayed here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Water Tracker Section -->
+            <section id="water_tracker" class="tab-content hidden content-fade-in">
+                <div class="bg-gray-800 p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4 text-indigo-400">Daily Water Tracker</h2>
+                    <div class="flex flex-col md:flex-row gap-8 items-center justify-center">
+                        <!-- Visualizer -->
+                        <div class="flex flex-col items-center">
+                            <div id="water-visualizer">
+                                <div id="water-fill"></div>
+                            </div>
+                            <div class="mt-4 text-center">
+                                <p class="text-2xl font-bold text-white"><span id="water-current">0</span> / <span id="water-goal">2500</span> ml</p>
+                                <p id="water-status-message" class="text-green-400 font-semibold h-5 mt-1">Goal Set!</p>
+                            </div>
+                        </div>
+
+                        <!-- Controls -->
+                        <div class="w-full md:w-1/2 lg:w-1/3 space-y-4">
+                            <h3 class="text-lg font-semibold text-white">Log Your Intake</h3>
+                            <div class="grid grid-cols-2 gap-3">
+                                <button class="water-add-btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg" data-amount="250">+1 Glass (250ml)</button>
+                                <button class="water-add-btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg" data-amount="500">+1 Bottle (500ml)</button>
+                            </div>
+                            <div class="flex gap-3">
+                                <input type="number" id="custom-water-amount" class="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded-lg p-2.5" placeholder="Custom ml">
+                                <button id="add-custom-water-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-lg">Add</button>
+                            </div>
+                            <button id="reset-water-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 px-6 rounded-lg">Reset Day</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- One-Rep Max Section -->
+            <section id="onerepmax" class="tab-content hidden content-fade-in">
+                <div class="bg-gray-800 p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4 text-indigo-400">Estimated One-Rep Max (1RM) Calculator</h2>
+                    <p class="text-gray-400 mb-4">Uses the Brzycki formula. Most accurate for reps between 1 and 10.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="lift-weight" class="block mb-2 text-sm font-medium text-gray-300">Weight Lifted (kg)</label>
+                            <input type="number" id="lift-weight" class="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded-lg p-2.5" placeholder="e.g., 100">
+                        </div>
+                        <div>
+                            <label for="reps" class="block mb-2 text-sm font-medium text-gray-300">Repetitions</label>
+                            <input type="number" id="reps" class="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded-lg p-2.5" placeholder="e.g., 5">
+                        </div>
+                        <div class="md:col-span-2">
+                             <button id="calculate-1rm-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-lg transition-colors duration-300 mt-4">Calculate 1RM</button>
+                        </div>
+                    </div>
+                    <div id="1rm-result" class="mt-6 bg-gray-900 p-4 rounded-lg min-h-[100px]">
+                        <!-- 1RM result will be displayed here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- AI Assistant Section -->
+            <section id="ai_assistant" class="tab-content hidden content-fade-in">
+                <div class="bg-gray-800 p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4 text-indigo-400">AI Fitness Assistant</h2>
+                    <p class="text-gray-400 mb-6">Ask anything about fitness, nutrition, or workout techniques. Your AI assistant will provide a simplified answer and a relevant image.</p>
+                    <div class="flex flex-col md:flex-row gap-2 mb-6">
+                        <input type="text" id="ai-prompt-input" class="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded-lg p-2.5" placeholder="e.g., What are the benefits of creatine?">
+                        <button id="get-ai-response-btn" class="w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-lg transition-colors duration-300">Ask AI</button>
+                    </div>
+                    <div id="ai-response-area" class="mt-6 bg-gray-900 p-4 rounded-lg min-h-[300px] flex items-center justify-center">
+                        <!-- AI response will be displayed here -->
+                        <p class="text-gray-500">Your AI-generated answer and image will appear here.</p>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+        
+        <!-- Footer -->
+        <footer class="text-center mt-12">
+            <p class="text-gray-500">Built for peak performance. Use calculations as estimates and consult a professional for personal advice.</p>
+        </footer>
+    </div>
+
+    <script type="module">
+        // Firebase Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getAuth, 
+            onAuthStateChanged, 
+            createUserWithEmailAndPassword, 
+            signInWithEmailAndPassword, 
+            signOut,
+            signInAnonymously,
+            signInWithCustomToken
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            doc, 
+            getDoc, 
+            setDoc, 
+            onSnapshot 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- FIREBASE SETUP ---
+        // These variables are placeholders and will be provided by the environment.
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+        let dbUnsubscribe = null; // To detach the onSnapshot listener on logout
+
+        // --- AUTH UI ELEMENTS ---
+        const authContainer = document.getElementById('auth-container');
+        const appContainer = document.getElementById('app-container');
+        const authForm = document.getElementById('auth-form');
+        const authFormTitle = document.getElementById('auth-form-title');
+        const authSubmitBtn = document.getElementById('auth-submit-btn');
+        const authToggleText = document.getElementById('auth-toggle-text');
+        const authToggleBtn = document.getElementById('auth-toggle-btn');
+        const authFeedback = document.getElementById('auth-feedback');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const logoutBtn = document.getElementById('logout-btn');
+        const userEmailEl = document.getElementById('user-email');
+
+        let isLoginMode = true;
+        
+        // --- DATA ---
+        const workoutData = {
+            chest: [ { name: 'Barbell Bench Press', sets: '4', reps: '8-12' }, { name: 'Incline Dumbbell Press', sets: '3', reps: '10-12' }, { name: 'Dumbbell Flyes', sets: '3', reps: '12-15' }, { name: 'Cable Crossovers', sets: '3', reps: '15-20' }, { name: 'Push-ups', sets: '3', reps: 'To Failure' } ],
+            back: [ { name: 'Pull-ups / Lat Pulldowns', sets: '4', reps: '8-12' }, { name: 'Barbell Bent-Over Rows', sets: '4', reps: '8-10' }, { name: 'T-Bar Rows', sets: '3', reps: '10-12' }, { name: 'Seated Cable Rows', sets: '3', reps: '12-15' }, { name: 'Face Pulls', sets: '3', reps: '15-20' } ],
+            legs: [ { name: 'Barbell Squats', sets: '4', reps: '8-12' }, { name: 'Leg Press', sets: '4', reps: '10-15' }, { name: 'Romanian Deadlifts', sets: '3', reps: '10-12' }, { name: 'Leg Extensions', sets: '3', reps: '15-20' }, { name: 'Seated Leg Curls', sets: '3', reps: '15-20' }, { name: 'Calf Raises', sets: '4', reps: '15-25' } ],
+            shoulders: [ { name: 'Overhead Press (Barbell/Dumbbell)', sets: '4', reps: '8-12' }, { name: 'Dumbbell Lateral Raises', sets: '4', reps: '12-15' }, { name: 'Bent-Over Dumbbell Raises', sets: '3', reps: '12-15' }, { name: 'Upright Rows', sets: '3', reps: '10-12' }, { name: 'Barbell/Dumbbell Shrugs', sets: '4', reps: '10-15' } ],
+            arms: [ { name: 'Barbell Curls', sets: '3', reps: '8-12' }, { name: 'Skull Crushers', sets: '3', reps: '8-12' }, { name: 'Dumbbell Hammer Curls', sets: '3', reps: '10-15' }, { name: 'Tricep Pushdowns', sets: '3', reps: '12-15' }, { name: 'Concentration Curls', sets: '3', reps: '12-15' }, { name: 'Overhead Tricep Extension', sets: '3', reps: '12-15' } ],
+            full_body: [ { name: 'Squats', sets: '3', reps: '8-12' }, { name: 'Bench Press', sets: '3', reps: '8-12' }, { name: 'Bent-Over Rows', sets: '3', reps: '8-12' }, { name: 'Overhead Press', sets: '3', reps: '10-15' }, { name: 'Lat Pulldowns', sets: '3', reps: '10-15' }, { name: 'Plank', sets: '3', reps: '60 seconds hold' } ]
+        };
+
+        // --- GLOBAL STATE ---
+        let calorieGoal = 2000;
+        let dailyLog = [];
+        let workoutState = {};
+        let waterIntakeGoal = 2500;
+        let currentWaterIntake = 0;
+
+        // --- RENDER FUNCTIONS ---
+        function renderWorkoutTracker() {
+            const trackerMuscleGroupSelect = document.getElementById('tracker-muscle-group');
+            const workoutTrackerList = document.getElementById('workout-tracker-list');
+            const selectedGroup = trackerMuscleGroupSelect.value;
+            if (!workoutState[selectedGroup]) {
+                workoutState[selectedGroup] = workoutData[selectedGroup].map(() => false);
+            }
+            const exercises = workoutData[selectedGroup];
+            const exerciseStates = workoutState[selectedGroup];
+            
+            workoutTrackerList.innerHTML = '';
+            let firstUnfinishedFound = false;
+
+            if (exercises.length === 0) {
+                workoutTrackerList.innerHTML = '<p class="text-gray-500">No workout selected.</p>';
+                return;
+            }
+
+            exercises.forEach((ex, index) => {
+                const isDone = exerciseStates[index];
+                let currentIndicator = '';
+                if (!isDone && !firstUnfinishedFound) {
+                    currentIndicator = '<span class="text-xs font-bold text-yellow-400 ml-2">NEXT UP</span>';
+                    firstUnfinishedFound = true;
+                }
+
+                const item = document.createElement('div');
+                item.className = `workout-item p-4 rounded-lg flex items-center justify-between transition-all duration-300 ${isDone ? 'bg-green-900/50' : 'bg-gray-800'}`;
+                item.innerHTML = `
+                    <div class="flex-1">
+                        <h4 class="font-bold ${isDone ? 'text-gray-500 line-through' : 'text-white'}">${ex.name} ${currentIndicator}</h4>
+                        <p class="text-sm text-gray-400">Sets: ${ex.sets} | Reps: ${ex.reps}</p>
+                    </div>
+                    <button data-group="${selectedGroup}" data-index="${index}" class="done-btn ml-4 px-4 py-2 text-sm font-semibold rounded-lg ${isDone ? 'bg-gray-600 text-gray-400' : 'bg-green-600 hover:bg-green-700 text-white'}">
+                        ${isDone ? 'Undo' : 'Done'}
+                    </button>
+                `;
+                workoutTrackerList.appendChild(item);
+            });
+            
+            if (!firstUnfinishedFound) {
+                const completionMessage = document.createElement('div');
+                completionMessage.className = 'p-4 text-center bg-indigo-900/50 rounded-lg';
+                completionMessage.innerHTML = '<p class="text-xl font-bold text-green-400">Workout Complete! Well done! 🎉</p>';
+                workoutTrackerList.appendChild(completionMessage);
+            }
+        }
+
+        function renderLog() {
+            const foodLogList = document.getElementById('food-log-list');
+            const totalCaloriesEl = document.getElementById('total-calories');
+            const calorieGoalEl = document.getElementById('calorie-goal');
+            const calorieProgressBar = document.getElementById('calorie-progress-bar');
+            const calorieStatusMessage = document.getElementById('calorie-status-message');
+            
+            foodLogList.innerHTML = '';
+            let totalCalories = dailyLog.reduce((sum, item) => sum + item.calories, 0);
+
+            if (dailyLog.length === 0) {
+                foodLogList.innerHTML = '<li class="text-center text-gray-500 pt-8">Your food log is empty.</li>';
+            } else {
+                dailyLog.forEach((food, index) => {
+                    const li = document.createElement('li');
+                    li.className = 'bg-gray-800 p-3 rounded-lg flex justify-between items-center';
+                    li.innerHTML = `
+                        <div>
+                            <span class="font-semibold text-white">${food.name}</span>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <span class="font-bold text-indigo-400">${food.calories} kcal</span>
+                            <button data-index="${index}" class="delete-food-btn text-2xl leading-none text-gray-500 hover:text-red-400 transition-colors">&times;</button>
+                        </div>
+                    `;
+                    foodLogList.appendChild(li);
+                });
+            }
+
+            totalCaloriesEl.textContent = totalCalories;
+            calorieGoalEl.textContent = calorieGoal;
+            
+            const progress = calorieGoal > 0 ? (totalCalories / calorieGoal) * 100 : 0;
+            const displayProgress = Math.min(progress, 100);
+            calorieProgressBar.style.width = `${displayProgress}%`;
+            
+            if (totalCalories > calorieGoal) {
+                calorieProgressBar.style.width = '100%';
+                calorieProgressBar.classList.remove('bg-green-600', 'bg-yellow-500');
+                calorieProgressBar.classList.add('bg-red-600');
+                calorieStatusMessage.textContent = 'Danger Zone! You are over your calorie goal.';
+                calorieStatusMessage.className = 'text-sm font-medium text-red-400 h-5';
+            } else if (progress >= 100) {
+                 calorieProgressBar.classList.remove('bg-yellow-500', 'bg-red-600');
+                calorieProgressBar.classList.add('bg-green-600');
+                calorieStatusMessage.textContent = 'Congratulations! Goal Reached!';
+                calorieStatusMessage.className = 'text-sm font-medium text-green-400 h-5';
+            } else if (progress >= 80) {
+                calorieProgressBar.classList.remove('bg-green-600', 'bg-red-600');
+                calorieProgressBar.classList.add('bg-yellow-500');
+                calorieStatusMessage.textContent = 'You are getting close to your goal!';
+                calorieStatusMessage.className = 'text-sm font-medium text-yellow-400 h-5';
+            } else {
+                calorieProgressBar.classList.remove('bg-yellow-500', 'bg-red-600');
+                calorieProgressBar.classList.add('bg-green-600');
+                calorieStatusMessage.textContent = 'Keep going, you can do it!';
+                calorieStatusMessage.className = 'text-sm font-medium text-gray-400 h-5';
+            }
+             calorieProgressBar.textContent = `${Math.round(displayProgress)}%`;
+        }
+
+        function renderWaterTracker() {
+            const waterCurrentEl = document.getElementById('water-current');
+            const waterGoalEl = document.getElementById('water-goal');
+            const waterFillEl = document.getElementById('water-fill');
+            const waterStatusMessageEl = document.getElementById('water-status-message');
+            
+            waterCurrentEl.textContent = currentWaterIntake;
+            waterGoalEl.textContent = waterIntakeGoal;
+            const percentage = waterIntakeGoal > 0 ? Math.min((currentWaterIntake / waterIntakeGoal) * 100, 100) : 0;
+            waterFillEl.style.height = `${percentage}%`;
+
+            if (currentWaterIntake >= waterIntakeGoal) {
+                waterStatusMessageEl.textContent = 'Goal Achieved! 💧';
+                waterStatusMessageEl.className = 'text-green-400 font-semibold h-5 mt-1';
+            } else {
+                 waterStatusMessageEl.textContent = 'Keep hydrating...';
+                 waterStatusMessageEl.className = 'text-yellow-400 font-semibold h-5 mt-1';
+            }
+        }
+
+        function renderAll() {
+            renderLog();
+            renderWorkoutTracker();
+            renderWaterTracker();
+        }
+
+        // --- AUTH & DATA LOGIC ---
+        async function initialSignIn() {
+            if (initialAuthToken) {
+                try {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } catch (error) {
+                    console.error("Custom token sign-in failed, trying anonymous:", error);
+                    await signInAnonymously(auth);
+                }
+            } else {
+                await signInAnonymously(auth);
+            }
+        }
+        
+        async function saveData() {
+            if (!currentUser) return;
+            const userDocRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}/appData`, 'dashboardState');
+            const dataToSave = {
+                calorieGoal,
+                dailyLog,
+                workoutState,
+                waterIntakeGoal,
+                currentWaterIntake,
+            };
+            await setDoc(userDocRef, dataToSave, { merge: true });
+        }
+
+        function loadUserData(userId) {
+            const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/appData`, 'dashboardState');
+            
+            if (dbUnsubscribe) dbUnsubscribe();
+
+            dbUnsubscribe = onSnapshot(userDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    calorieGoal = data.calorieGoal || 2000;
+                    dailyLog = data.dailyLog || [];
+                    workoutState = data.workoutState || {};
+                    waterIntakeGoal = data.waterIntakeGoal || 2500;
+                    currentWaterIntake = data.currentWaterIntake || 0;
+                } else {
+                    saveData();
+                }
+                renderAll();
+            });
+        }
+        
+        function resetLocalState() {
+            calorieGoal = 2000;
+            dailyLog = [];
+            workoutState = {};
+            waterIntakeGoal = 2500;
+            currentWaterIntake = 0;
+            renderAll();
+        }
+
+        onAuthStateChanged(auth, user => {
+            if (user) {
+                currentUser = user;
+                authContainer.classList.add('hidden');
+                appContainer.classList.remove('hidden');
+                userEmailEl.textContent = user.email || 'Anonymous User';
+                loadUserData(user.uid);
+            } else {
+                currentUser = null;
+                authContainer.classList.remove('hidden');
+                appContainer.classList.add('hidden');
+                if (dbUnsubscribe) dbUnsubscribe();
+                resetLocalState();
+            }
+            appContainer.classList.remove('hidden');
+        });
+
+        authForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            authFeedback.textContent = '';
+            
+            try {
+                if (isLoginMode) {
+                    await signInWithEmailAndPassword(auth, email, password);
+                } else {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                }
+            } catch (error) {
+                authFeedback.textContent = error.message;
+            }
+        });
+        
+        authToggleBtn.addEventListener('click', () => {
+            isLoginMode = !isLoginMode;
+            authFormTitle.textContent = isLoginMode ? 'Login to continue' : 'Create an account';
+            authSubmitBtn.textContent = isLoginMode ? 'Login' : 'Register';
+            authToggleText.textContent = isLoginMode ? "Don't have an account?" : "Already have an account?";
+            authToggleBtn.textContent = isLoginMode ? 'Register' : 'Login';
+            authFeedback.textContent = '';
+            authForm.reset();
+        });
+
+        logoutBtn.addEventListener('click', () => signOut(auth));
+        
+        // --- UI ELEMENT CONSTANTS & EVENT LISTENERS ---
+        const tabs = document.querySelectorAll('.tab-btn');
+        const contents = document.querySelectorAll('.tab-content');
+        
+        tabs.forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                const targetTab = e.currentTarget.getAttribute('data-tab');
+                tabs.forEach(item => item.classList.remove('tab-active'));
+                e.currentTarget.classList.add('tab-active');
+                contents.forEach(content => {
+                    content.classList.toggle('hidden', content.id !== targetTab);
+                });
+            });
+        });
+
+        // --- WORKOUT GENERATOR ---
+        const generateWorkoutBtn = document.getElementById('generate-workout-btn');
+        const muscleGroupSelect = document.getElementById('muscle-group');
+        const workoutResultDiv = document.getElementById('workout-result');
+        
+        generateWorkoutBtn.addEventListener('click', () => {
+            const selectedGroup = muscleGroupSelect.value;
+            const exercises = workoutData[selectedGroup];
+            let html = `<h3 class="text-xl font-bold mb-4 text-white">${selectedGroup.replace('_', ' ').toUpperCase()} WORKOUT</h3>`;
+            html += '<div class="overflow-x-auto"><table class="w-full text-sm text-left text-gray-400">';
+            html += '<thead class="text-xs text-gray-300 uppercase bg-gray-700"><tr><th scope="col" class="px-6 py-3">Exercise</th><th scope="col" class="px-6 py-3">Sets</th><th scope="col" class="px-6 py-3">Reps</th></tr></thead><tbody>';
+            exercises.forEach(ex => {
+                html += `<tr class="border-b bg-gray-800 border-gray-700"><th scope="row" class="px-6 py-4 font-medium text-white whitespace-nowrap">${ex.name}</th><td class="px-6 py-4">${ex.sets}</td><td class="px-6 py-4">${ex.reps}</td></tr>`;
+            });
+            html += '</tbody></table></div>';
+            workoutResultDiv.innerHTML = html;
+        });
+
+        // --- WORKOUT TRACKER ---
+        const trackerMuscleGroupSelect = document.getElementById('tracker-muscle-group');
+        const workoutTrackerList = document.getElementById('workout-tracker-list');
+        const resetWorkoutBtn = document.getElementById('reset-workout-btn');
+
+        trackerMuscleGroupSelect.addEventListener('change', renderWorkoutTracker);
+        resetWorkoutBtn.addEventListener('click', () => {
+            const selectedGroup = trackerMuscleGroupSelect.value;
+            workoutState[selectedGroup] = workoutData[selectedGroup].map(() => false);
+            saveData();
+        });
+
+        workoutTrackerList.addEventListener('click', (e) => {
+            if(e.target.classList.contains('done-btn')) {
+                const group = e.target.dataset.group;
+                const index = parseInt(e.target.dataset.index, 10);
+                workoutState[group][index] = !workoutState[group][index];
+                saveData();
+            }
+        });
+
+        // --- CALORIE CALCULATOR ---
+        const calculateCaloriesBtn = document.getElementById('calculate-calories-btn');
+        const caloriesResultDiv = document.getElementById('calories-result');
+
+        calculateCaloriesBtn.addEventListener('click', () => {
+            const age = parseFloat(document.getElementById('age').value);
+            const gender = document.getElementById('gender').value;
+            const weight = parseFloat(document.getElementById('weight-cal').value);
+            const height = parseFloat(document.getElementById('height-cal').value);
+            const activityLevel = parseFloat(document.getElementById('activity-level').value);
+            if (!age || !weight || !height) {
+                caloriesResultDiv.innerHTML = `<p class="text-red-400">Please fill in all fields.</p>`;
+                return;
+            }
+            let bmr = (gender === 'male') ? (10 * weight + 6.25 * height - 5 * age + 5) : (10 * weight + 6.25 * height - 5 * age - 161);
+            const tdee = bmr * activityLevel;
+            const goals = { "Maintain weight": tdee, "Mild weight loss (0.25 kg/week)": tdee - 250, "Weight loss (0.5 kg/week)": tdee - 500, "Mild weight gain (0.25 kg/week)": tdee + 250, "Weight gain (0.5 kg/week)": tdee + 500 };
+            let html = `<div class="text-center mb-4"><span class="text-lg font-semibold">Your BMR is </span><span class="text-2xl font-bold text-indigo-400">${Math.round(bmr)}</span><span class="text-lg"> calories.</span></div>`;
+            html += `<h3 class="text-xl font-bold mb-4 text-center text-white">Daily Calorie Needs:</h3><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">`;
+            Object.entries(goals).forEach(([goal, calories]) => {
+                const cals = Math.round(calories);
+                html += `<div class="bg-gray-800 p-4 rounded-lg text-center flex flex-col justify-between"><div><h4 class="font-semibold text-indigo-400">${goal}</h4><p class="text-2xl font-bold text-white my-2">${cals} Cal/day</p><div class="text-xs text-gray-400"><span>P: ${Math.round((cals * 0.3) / 4)}g</span> | <span>C: ${Math.round((cals * 0.4) / 4)}g</span> | <span>F: ${Math.round((cals * 0.3) / 9)}g</span></div></div><button data-goal-calories="${cals}" class="set-goal-btn mt-4 w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg text-sm">Set as Goal</button></div>`;
+            });
+            html += '</div>';
+            caloriesResultDiv.innerHTML = html;
+        });
+
+        caloriesResultDiv.addEventListener('click', (e) => {
+            if (e.target.classList.contains('set-goal-btn')) {
+                calorieGoal = parseInt(e.target.dataset.goalCalories);
+                saveData();
+                tabs.forEach(tab => tab.classList.toggle('tab-active', tab.dataset.tab === 'diet'));
+                contents.forEach(content => content.classList.toggle('hidden', content.id !== 'diet'));
+            }
+        });
+
+        // --- DIET TRACKER ---
+        const addFoodBtn = document.getElementById('add-food-btn');
+        const foodNameInput = document.getElementById('food-name');
+        const foodCaloriesInput = document.getElementById('food-calories');
+        const foodLogList = document.getElementById('food-log-list');
+        const estimateCaloriesBtn = document.getElementById('estimate-calories-btn');
+        const foodImageInput = document.getElementById('food-image');
+        const aiResultArea = document.getElementById('ai-result-area');
+        const clearLogBtn = document.getElementById('clear-log-btn');
+        const imagePreview = document.getElementById('image-preview');
+        const manualFeedback = document.getElementById('manual-entry-feedback');
+
+        addFoodBtn.addEventListener('click', () => {
+            manualFeedback.textContent = '';
+            const name = foodNameInput.value.trim();
+            const calories = parseInt(foodCaloriesInput.value);
+            if (name && calories > 0) {
+                dailyLog.push({ name, calories });
+                foodNameInput.value = '';
+                foodCaloriesInput.value = '';
+                saveData();
+            } else {
+                manualFeedback.textContent = 'Please enter a valid food name and calorie amount.';
+            }
+        });
+
+        clearLogBtn.addEventListener('click', () => { dailyLog = []; saveData(); });
+
+        foodLogList.addEventListener('click', (e) => {
+            if (e.target.classList.contains('delete-food-btn')) {
+                const index = parseInt(e.target.dataset.index);
+                dailyLog.splice(index, 1);
+                saveData();
+            }
+        });
+
+        foodImageInput.addEventListener('change', () => {
+            const file = foodImageInput.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    imagePreview.style.backgroundImage = `url('${e.target.result}')`;
+                    imagePreview.style.backgroundSize = 'cover';
+                    imagePreview.style.backgroundPosition = 'center';
+                    imagePreview.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        estimateCaloriesBtn.addEventListener('click', async () => {
+            const file = foodImageInput.files[0];
+            if (!file) { aiResultArea.innerHTML = `<p class="text-red-400">Please select an image first.</p>`; return; }
+            aiResultArea.innerHTML = `<p class="text-yellow-400">Analyzing image... please wait.</p>`;
+            estimateCaloriesBtn.disabled = true;
+            estimateCaloriesBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onloadend = async () => {
+                const base64Data = reader.result.split(',')[1];
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                const payload = { contents: [{ parts: [ { text: "Analyze this image of food. Identify the food item and estimate the total calories. Provide the response as a single, clean JSON object with two keys: 'name' (string) and 'calories' (number). For example: {\"name\": \"Avocado toast with egg\", \"calories\": 450}. Do not include any other text or markdown formatting." }, { inlineData: { mimeType: file.type, data: base64Data } } ] }] };
+
+                try {
+                    const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                    if (!response.ok) throw new Error(`API error: ${response.statusText}`);
+                    const result = await response.json();
+                    const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (text) {
+                        const jsonStart = text.indexOf('{'), jsonEnd = text.lastIndexOf('}');
+                        if (jsonStart === -1 || jsonEnd === -1) throw new Error("No JSON object found.");
+                        const data = JSON.parse(text.substring(jsonStart, jsonEnd + 1));
+                        if (data.name && data.calories) {
+                            foodNameInput.value = data.name;
+                            foodCaloriesInput.value = data.calories;
+                            aiResultArea.innerHTML = `<p class="text-green-400">Estimation complete! Check fields above.</p>`;
+                        } else throw new Error('Invalid JSON structure.');
+                    } else throw new Error('No content received from AI.');
+                } catch (error) {
+                    console.error('AI Estimation Error:', error);
+                    aiResultArea.innerHTML = `<p class="text-red-400">Sorry, could not estimate calories.</p>`;
+                } finally {
+                    estimateCaloriesBtn.disabled = false;
+                    estimateCaloriesBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            };
+        });
+        
+        // --- BMI CALCULATOR ---
+        const calculateBmiBtn = document.getElementById('calculate-bmi-btn');
+        const bmiResultDiv = document.getElementById('bmi-result');
+        
+        calculateBmiBtn.addEventListener('click', () => {
+            const weight = parseFloat(document.getElementById('weight-bmi').value), height = parseFloat(document.getElementById('height-bmi').value);
+            if (!weight || !height) return;
+            const bmi = weight / ((height / 100) ** 2), bmiRounded = bmi.toFixed(1);
+            let category = '', colorClass = '';
+            if (bmi < 18.5) { category = 'Underweight'; colorClass = 'text-blue-400'; }
+            else if (bmi < 24.9) { category = 'Normal weight'; colorClass = 'text-green-400'; }
+            else if (bmi < 29.9) { category = 'Overweight'; colorClass = 'text-yellow-400'; }
+            else { category = 'Obesity'; colorClass = 'text-red-400'; }
+            bmiResultDiv.innerHTML = `<div class="text-center"><p class="text-lg text-gray-300">Your BMI is</p><p class="text-5xl font-extrabold my-2 ${colorClass}">${bmiRounded}</p><p class="text-lg font-semibold ${colorClass}">${category}</p></div>`;
+        });
+
+        // --- WATER GOAL CALCULATOR ---
+        const calculateWaterBtn = document.getElementById('calculate-water-btn');
+        const waterResultDiv = document.getElementById('water-result');
+
+        calculateWaterBtn.addEventListener('click', () => {
+            const weight = parseFloat(document.getElementById('weight-water').value);
+            if(!weight || weight <=0) return;
+            const waterIntakeMl = Math.round((weight * 35));
+            waterResultDiv.innerHTML = `<div class="text-center"><p class="text-lg text-gray-300">Recommended Daily Water Intake</p><p class="text-5xl font-extrabold my-2 text-indigo-400">${(waterIntakeMl / 1000).toFixed(1)} Liters</p><p class="text-gray-400">This is an estimate.</p><button id="set-water-goal-btn" data-goal-ml="${waterIntakeMl}" class="mt-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg">Set as Daily Goal</button></div>`;
+        });
+
+        waterResultDiv.addEventListener('click', (e) => {
+            if (e.target.id === 'set-water-goal-btn') {
+                waterIntakeGoal = parseInt(e.target.dataset.goalMl, 10);
+                saveData();
+                tabs.forEach(tab => tab.classList.toggle('tab-active', tab.dataset.tab === 'water_tracker'));
+                contents.forEach(content => content.classList.toggle('hidden', content.id !== 'water_tracker'));
+            }
+        });
+        
+        // --- WATER TRACKER ---
+        const customWaterAmountInput = document.getElementById('custom-water-amount');
+        const addCustomWaterBtn = document.getElementById('add-custom-water-btn');
+        const resetWaterBtn = document.getElementById('reset-water-btn');
+        const waterAddBtns = document.querySelectorAll('.water-add-btn');
+
+        waterAddBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                currentWaterIntake += parseInt(btn.dataset.amount, 10);
+                saveData();
+            });
+        });
+
+        addCustomWaterBtn.addEventListener('click', () => {
+            const amount = parseInt(customWaterAmountInput.value, 10);
+            if (amount > 0) {
+                currentWaterIntake += amount;
+                customWaterAmountInput.value = '';
+                saveData();
+            }
+        });
+
+        resetWaterBtn.addEventListener('click', () => { currentWaterIntake = 0; saveData(); });
+
+        // --- 1RM CALCULATOR ---
+        const calculate1rmBtn = document.getElementById('calculate-1rm-btn');
+        const oneRmResultDiv = document.getElementById('1rm-result');
+        
+        calculate1rmBtn.addEventListener('click', () => {
+             const weight = parseFloat(document.getElementById('lift-weight').value), reps = parseInt(document.getElementById('reps').value);
+             if (!weight || !reps || reps < 1) return;
+             const oneRm = reps === 1 ? weight : weight / (1.0278 - (0.0278 * reps));
+             oneRmResultDiv.innerHTML = `<div class="text-center"><p class="text-lg text-gray-300">Your Estimated 1RM is</p><p class="text-5xl font-extrabold my-2 text-indigo-400">${oneRm.toFixed(1)} kg</p></div>`;
+        });
+
+        // --- AI ASSISTANT ---
+        const aiPromptInput = document.getElementById('ai-prompt-input');
+        const getAiResponseBtn = document.getElementById('get-ai-response-btn');
+        const aiResponseArea = document.getElementById('ai-response-area');
+        
+        async function handleAiRequest() {
+            const prompt = aiPromptInput.value.trim();
+            if (!prompt) {
+                aiResponseArea.innerHTML = `<p class="text-red-400">Please enter a question or topic.</p>`;
+                return;
+            }
+
+            aiResponseArea.innerHTML = `
+                <div class="flex flex-col items-center justify-center gap-4">
+                    <div class="w-8 h-8 border-4 border-dashed rounded-full animate-spin border-indigo-400"></div>
+                    <p class="text-gray-400">Generating AI response... This may take a moment.</p>
+                </div>`;
+            getAiResponseBtn.disabled = true;
+            getAiResponseBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            try {
+                const [textResponse, imageResponse] = await Promise.all([
+                    generateAiText(prompt),
+                    generateAiImage(prompt)
+                ]);
+
+                aiResponseArea.innerHTML = `
+                    <div class="flex flex-col lg:flex-row gap-6 items-start">
+                        <div class="w-full lg:w-1/3">
+                             <img src="${imageResponse}" alt="AI generated image for ${prompt}" class="rounded-lg shadow-lg object-cover w-full h-auto">
+                        </div>
+                        <div class="w-full lg:w-2/3">
+                            <h3 class="text-xl font-bold text-white mb-2">Simplified Answer:</h3>
+                            <p class="text-gray-300 whitespace-pre-wrap">${textResponse}</p>
+                        </div>
+                    </div>
+                `;
+
+            } catch (error) {
+                console.error("AI Generation Error:", error);
+                aiResponseArea.innerHTML = `<p class="text-red-400">Sorry, something went wrong. Could not generate a response.</p>`;
+            } finally {
+                getAiResponseBtn.disabled = false;
+                getAiResponseBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        async function generateAiText(prompt) {
+            const apiKey = ""; // Provided by environment
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{
+                    parts: [{ text: `Explain the following topic in a simple, easy-to-understand way for a beginner in fitness. Keep it concise (2-3 paragraphs): ${prompt}` }]
+                }]
+            };
+
+            const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if (!response.ok) throw new Error(`Gemini API error: ${response.statusText}`);
+            const result = await response.json();
+            const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (!text) throw new Error("No text content received from Gemini.");
+            return text;
+        }
+
+        async function generateAiImage(prompt) {
+            const apiKey = ""; // Provided by environment
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+            const payload = { 
+                instances: { prompt: `A vibrant, high-quality, photorealistic image related to fitness and health, illustrating the concept of: ${prompt}` },
+                parameters: { "sampleCount": 1 }
+            };
+
+            const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if (!response.ok) throw new Error(`Imagen API error: ${response.statusText}`);
+            const result = await response.json();
+            const base64Data = result.predictions?.[0]?.bytesBase64Encoded;
+            if (!base64Data) throw new Error("No image data received from Imagen.");
+            return `data:image/png;base64,${base64Data}`;
+        }
+        
+        getAiResponseBtn.addEventListener('click', handleAiRequest);
+        
+        // --- INITIALIZATION ---
+        generateWorkoutBtn.click(); // Set initial content for workout generator
+        initialSignIn();
+
+    </script>
+</body>
+</html>
+

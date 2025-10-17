@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>School Management App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --primary-hover: #4338ca;
+            --secondary-color: #10b981;
+            --secondary-hover: #059669;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        .tab-btn {
+            transition: all 0.2s ease-in-out;
+            position: relative;
+        }
+        .tab-btn.active {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background-color: var(--primary-color);
+            border-radius: 2px;
+        }
+        .seat {
+            border: 1px solid #e5e7eb;
+            padding: 8px;
+            margin: 4px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 12px;
+            background-color: #fff;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+            min-height: 85px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 110px;
+            transition: transform 0.1s ease-in-out, box-shadow 0.1s ease-in-out;
+        }
+        .seat-occupied {
+            background-color: #eef2ff;
+            border-color: #c7d2fe;
+            cursor: grab;
+        }
+        .seat-occupied:active {
+             cursor: grabbing;
+        }
+        .seat.dragging {
+            opacity: 0.5;
+            border: 2px dashed var(--primary-color);
+            transform: scale(0.95);
+        }
+        .seat span {
+            display: block;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(17, 24, 39, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out;
+            pointer-events: none;
+        }
+        .modal-overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .modal-container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            transform: scale(0.95);
+            transition: transform 0.2s ease-in-out;
+        }
+        .modal-overlay.visible .modal-container {
+            transform: scale(1);
+        }
+        .custom-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.625rem 1.25rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: all 0.2s ease-in-out;
+            transform-origin: center;
+        }
+        .custom-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+         .custom-btn:active {
+            transform: translateY(-1px) scale(0.98);
+        }
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+        .btn-secondary {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+        .btn-secondary:hover {
+            background-color: var(--secondary-hover);
+        }
+         .btn-muted {
+            background-color: #4b5563;
+            color: white;
+        }
+        .btn-muted:hover {
+            background-color: #374151;
+        }
+        
+        /* Print Styles */
+        #printableArea {
+            display: none;
+        }
+
+        @media print {
+            body > .container {
+                display: none;
+            }
+            #printableArea {
+                display: block;
+            }
+            .print-page {
+                page-break-after: always;
+                font-family: 'Inter', sans-serif;
+            }
+            .print-page:last-child {
+                page-break-after: auto;
+            }
+            .print-title {
+                text-align: center;
+                font-size: 22px;
+                margin-bottom: 20px;
+                font-weight: bold;
+            }
+            .print-row {
+                display: flex;
+                flex-wrap: wrap;
+                margin-bottom: 8px;
+            }
+            .print-bench {
+                display: flex !important;
+                border: 2px solid #999;
+                border-radius: 8px;
+                margin: 4px;
+                padding: 4px;
+            }
+            .print-seat-card {
+                border: 1px solid #ccc;
+                padding: 8px;
+                margin: 4px;
+                width: 160px;
+                font-size: 11px;
+                line-height: 1.4;
+            }
+            .print-seat-card p {
+                margin: 2px 0;
+            }
+            .print-seat-card b {
+                font-size: 13px;
+                font-weight: 600;
+            }
+            .print-seat-card strong {
+                font-size: 12px;
+                font-weight: 700;
+                display: block;
+                margin-bottom: 4px;
+            }
+        }
+    </style>
+</head>
+<body class="antialiased text-gray-800">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl sm:text-5xl font-bold text-gray-900 tracking-tight">School Management System</h1>
+            <p class="text-lg text-gray-600 mt-3 max-w-2xl mx-auto">Efficiently manage exam seating, student results, and teacher records.</p>
+        </header>
+
+        <!-- Tabs Navigation -->
+        <div class="mb-8 border-b border-gray-200">
+            <nav class="flex -mb-px" aria-label="Tabs">
+                <button onclick="changeTab('examSeating')" class="tab-btn w-1/3 py-4 px-1 text-center font-medium text-lg text-gray-500 hover:text-gray-700 focus:outline-none active">
+                    Exam Seating
+                </button>
+                 <button onclick="changeTab('teacherPanel')" class="tab-btn w-1/3 py-4 px-1 text-center font-medium text-lg text-gray-500 hover:text-gray-700 focus:outline-none">
+                    Teacher's Panel
+                </button>
+                <button onclick="changeTab('studentResult')" class="tab-btn w-1/3 py-4 px-1 text-center font-medium text-lg text-gray-500 hover:text-gray-700 focus:outline-none">
+                    Student Result
+                </button>
+            </nav>
+        </div>
+
+        <!-- Exam Seating Tab -->
+        <div id="examSeating" class="tab-content">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg">
+                    <h2 class="text-xl font-semibold mb-4 border-b pb-3">Room & Class Details</h2>
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                         <div>
+                            <label for="benches" class="block text-sm font-medium text-gray-700 mb-1">Benches/Row</label>
+                            <input type="number" id="benches" value="5" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="studentsPerRoom" class="block text-sm font-medium text-gray-700 mb-1">Students/Room</label>
+                            <input type="number" id="studentsPerRoom" value="20" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+                         <div class="col-span-2">
+                            <label for="totalRooms" class="block text-sm font-medium text-gray-700 mb-1">Total Available Rooms</label>
+                            <input type="number" id="totalRooms" value="4" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" onchange="updateExamRoster()">
+                        </div>
+                    </div>
+                    <div class="space-y-4 border-t pt-4">
+                        <h3 class="font-semibold text-lg">Add Students for Exam</h3>
+                        <div class="bg-gray-50 p-3 rounded-lg">
+                            <label for="csvFileInput" class="block text-sm font-medium text-gray-700 mb-2">Upload Student CSV</label>
+                            <input type="file" id="csvFileInput" accept=".csv" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100"/>
+                            <button onclick="handleCSVUpload()" class="w-full custom-btn btn-primary mt-2 text-sm">Upload CSV</button>
+                             <a href="#" onclick="downloadSampleCSV()" class="text-xs text-indigo-600 hover:underline mt-2 inline-block">Download Sample CSV</a>
+                        </div>
+                        
+                        <div class="text-center my-2 text-sm text-gray-500">OR</div>
+
+                        <div class="bg-gray-50 p-3 rounded-lg">
+                             <h4 class="font-semibold text-md mb-2">Add Manually</h4>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label for="manualClass" class="block text-sm font-medium text-gray-700">Class</label>
+                                    <input type="number" id="manualClass" placeholder="e.g., 6" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm text-sm">
+                                </div>
+                                <div>
+                                    <label for="manualSubject" class="block text-sm font-medium text-gray-700">Subject</label>
+                                    <input type="text" id="manualSubject" placeholder="e.g., Math" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm text-sm">
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <label for="rollNumbersList" class="block text-sm font-medium text-gray-700">Roll Numbers (comma-separated)</label>
+                                <textarea id="rollNumbersList" rows="3" placeholder="1001, 1002, 1003" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm text-sm"></textarea>
+                            </div>
+                            <button onclick="addManualStudents()" class="w-full custom-btn btn-primary mt-2 text-sm">Add Manual Students</button>
+                             <button onclick="autoGenerateManualStudents()" class="w-full custom-btn btn-muted mt-2 text-sm">Auto Generate Sample</button>
+                        </div>
+                        <div id="addClassError" class="text-red-500 text-sm mt-2 h-4 text-center"></div>
+                    </div>
+                     <div class="mt-6">
+                        <h3 class="font-semibold text-lg">Exam Roster</h3>
+                        <div id="examRosterContainer" class="mt-2 border rounded-lg p-2 h-48 overflow-y-auto bg-gray-50">
+                            <p class="text-sm text-gray-500 text-center py-4">Add students for the exam.</p>
+                        </div>
+                    </div>
+                     <button onclick="generateSeating()" class="mt-4 w-full custom-btn btn-secondary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                        Generate Seating Arrangement
+                     </button>
+                </div>
+                <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
+                    <div class="flex flex-col sm:flex-row justify-between sm:items-center border-b pb-3 mb-4">
+                        <h2 class="text-xl font-semibold">Seating Arrangement</h2>
+                        <div class="flex items-center gap-4 mt-3 sm:mt-0">
+                            <div id="roomSelectorContainer" class="flex flex-wrap gap-2"></div>
+                            <button onclick="printSeatingArrangement()" class="custom-btn btn-muted text-sm py-1 px-3 ml-auto">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v6a2 2 0 002 2h12a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a2 2 0 00-2-2H7a2 2 0 00-2 2zm8 0H7v3h6V4zm0 8H7v4h6v-4z" clip-rule="evenodd" /></svg>
+                                Print
+                            </button>
+                        </div>
+                    </div>
+                    <div id="seatingArrangement" class="overflow-x-auto">
+                         <div class="flex items-center justify-center h-full min-h-[300px] bg-gray-50 rounded-lg">
+                            <p class="text-gray-500 text-center">The generated seating plan will appear here.</p>
+                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Teacher's Panel Tab -->
+        <div id="teacherPanel" class="tab-content" style="display:none;">
+            <div class="bg-white p-6 sm:p-8 rounded-xl shadow-lg">
+                <h2 class="text-2xl font-bold mb-6">Student Records</h2>
+                <div id="teacherStudentList" class="space-y-8">
+                    <!-- Student lists will be populated here by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Student Result Tab -->
+        <div id="studentResult" class="tab-content" style="display:none;">
+             <div class="max-w-2xl mx-auto bg-white p-6 sm:p-8 rounded-xl shadow-lg">
+                <h2 class="text-2xl font-bold text-center mb-6">Check Your Result</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                     <div class="sm:col-span-1">
+                        <label for="resultClass" class="block text-sm font-medium text-gray-700">Select Class</label>
+                        <select id="resultClass" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-lg">
+                            <option>1</option> <option>2</option> <option>3</option> <option>4</option> <option>5</option> <option>6</option> <option>7</option> <option>8</option> <option>9</option> <option>10</option> <option>11</option> <option>12</option>
+                        </select>
+                    </div>
+                    <div class="sm:col-span-1">
+                        <label for="rollNumber" class="block text-sm font-medium text-gray-700">Roll Number</label>
+                        <input type="text" id="rollNumber" placeholder="e.g., 1001" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <button onclick="checkResult()" class="sm:col-span-1 w-full custom-btn btn-primary">Check Result</button>
+                </div>
+                <div id="resultDisplay" class="mt-8 min-h-[100px]"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Student Details Modal -->
+    <div id="studentModal" class="modal-overlay">
+        <div class="modal-container">
+            <div id="modalContent">
+                <!-- Modal content will be dynamically generated -->
+            </div>
+        </div>
+    </div>
+
+    <div id="printableArea"></div>
+
+
+    <script>
+        // --- Master Data Source ---
+        let masterStudentData = {
+            "1001": { name: "Alice Johnson", class: 1, marks: { "English": 88, "Math": 95, "Science": 92 } },
+            "1002": { name: "Bob Williams", class: 1, marks: { "English": 76, "Math": 82, "Science": 79 } },
+            "2101": { name: "Charlie Brown", class: 2, marks: { "Hindi": 95, "Art": 89 } },
+            "2102": { name: "David Miller", class: 2, marks: { "Hindi": 88, "Art": 91 } },
+            "6034": { name: "Eve Davis", class: 6, marks: { "English": 81, "Math": 90, "Science": 86 } },
+        };
+
+        let examStudents = [];
+        let seatingPlan = {}; 
+        let activeRoom = '';
+
+        // --- App Initialization ---
+        window.onload = function() {
+            renderTeacherPanel();
+        };
+
+        // --- Tab Management ---
+        function changeTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
+            document.getElementById(tabName).style.display = 'block';
+            document.querySelectorAll('.tab-btn').forEach(button => button.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+        }
+
+        // --- Exam Seating Logic ---
+        function downloadSampleCSV() {
+            const csvContent = "data:text/csv;charset=utf-8," 
+                + "roll,name,class,subject\n"
+                + "1001,Alice Johnson,1,Math\n"
+                + "1002,Bob Williams,1,Math\n"
+                + "2101,Charlie Brown,2,History\n"
+                + "6034,Eve Davis,6,Physics\n"
+                + "6035,Frank White,6,\"Art & Design\"\n";
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "sample_students.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function handleCSVUpload() {
+            const fileInput = document.getElementById('csvFileInput');
+            const file = fileInput.files[0];
+            const errorDiv = document.getElementById('addClassError');
+            errorDiv.textContent = '';
+
+            if (!file) {
+                errorDiv.textContent = 'Please select a CSV file to upload.';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const text = event.target.result;
+                const rows = text.split('\n').filter(row => row.trim() !== '');
+                const headers = rows.shift().trim().split(',');
+
+                if (headers.length < 4 || headers[0].trim() !== 'roll' || headers[1].trim() !== 'name' || headers[2].trim() !== 'class' || headers[3].trim() !== 'subject') {
+                    errorDiv.textContent = 'Invalid CSV format. Headers must be: roll,name,class,subject';
+                    return;
+                }
+                
+                rows.forEach(row => {
+                    const data = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
+                    if (data.length < 4) return; 
+
+                    const roll = data[0].trim().replace(/"/g, '');
+                    const name = data[1].trim().replace(/"/g, '');
+                    const studentClass = parseInt(data[2].trim().replace(/"/g, ''));
+                    const subject = data[3].trim().replace(/"/g, '');
+
+                    if(roll && name && !isNaN(studentClass) && subject) {
+                        examStudents.push({
+                            roll: roll,
+                            name: name,
+                            class: studentClass,
+                            subject: subject,
+                            assignedRoom: 'auto'
+                        });
+
+                        if (!masterStudentData[roll]) {
+                            masterStudentData[roll] = { name: name, class: studentClass, marks: {} };
+                        }
+                    }
+                });
+                updateExamRoster();
+                renderTeacherPanel();
+                fileInput.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        function addManualStudents() {
+            const errorDiv = document.getElementById('addClassError');
+            errorDiv.textContent = '';
+            const className = parseInt(document.getElementById('manualClass').value);
+            const subject = document.getElementById('manualSubject').value.trim();
+            const rollsText = document.getElementById('rollNumbersList').value.trim();
+
+            if (!className || !subject || !rollsText) {
+                 errorDiv.textContent = 'Please fill in all manual fields.';
+                 return;
+            }
+            
+            const rollNumbers = rollsText.split(',').map(r => r.trim()).filter(r => r);
+
+            rollNumbers.forEach(roll => {
+                examStudents.push({
+                    roll: roll,
+                    name: masterStudentData[roll] ? masterStudentData[roll].name : `Student (${roll})`,
+                    class: className,
+                    subject: subject,
+                    assignedRoom: 'auto'
+                });
+
+                if(!masterStudentData[roll]){
+                    masterStudentData[roll] = { name: `Student (${roll})`, class: className, marks: {} };
+                }
+            });
+
+            updateExamRoster();
+            renderTeacherPanel();
+            document.getElementById('manualClass').value = '';
+            document.getElementById('manualSubject').value = '';
+            document.getElementById('rollNumbersList').value = '';
+        }
+
+        function autoGenerateManualStudents() {
+             const sampleClasses = [6, 7, 8, 9, 10];
+             const sampleSubjects = ["Math", "Science", "History", "Geography", "Art"];
+             const randomClass = sampleClasses[Math.floor(Math.random() * sampleClasses.length)];
+             const randomSubject = sampleSubjects[Math.floor(Math.random() * sampleSubjects.length)];
+             const numStudents = Math.floor(Math.random() * 5) + 3; // 3 to 7 students
+             let rolls = [];
+             for(let i=0; i < numStudents; i++) {
+                 rolls.push(randomClass * 1000 + Math.floor(Math.random() * 99) + 1);
+             }
+             document.getElementById('manualClass').value = randomClass;
+             document.getElementById('manualSubject').value = randomSubject;
+             document.getElementById('rollNumbersList').value = rolls.join(', ');
+        }
+        
+        function assignRoomToGroup(className, subject, room) {
+            examStudents.forEach(student => {
+                if (student.class === className && student.subject === subject) {
+                    student.assignedRoom = room;
+                }
+            });
+            updateExamRoster();
+        }
+        
+        // --- FIX: Refactored function to use event listeners for robustness ---
+        function updateExamRoster() {
+            const rosterContainer = document.getElementById('examRosterContainer');
+            const groupedByClass = examStudents.reduce((acc, student) => {
+                const key = `${student.class}-${student.subject}`;
+                if(!acc[key]) {
+                    acc[key] = { class: student.class, subject: student.subject, count: 0 };
+                }
+                acc[key].count++;
+                return acc;
+            }, {});
+
+            if(Object.keys(groupedByClass).length === 0) {
+                 rosterContainer.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">Add students for the exam.</p>';
+                 return;
+            }
+            
+            const totalRooms = parseInt(document.getElementById('totalRooms').value) || 1;
+
+            rosterContainer.innerHTML = Object.values(groupedByClass).map(group => {
+                const sampleStudent = examStudents.find(s => s.class === group.class && s.subject === group.subject);
+                const assignedRoom = sampleStudent ? sampleStudent.assignedRoom : 'auto';
+                
+                let roomOptionsHtml = '';
+                for(let i=1; i<= totalRooms; i++){
+                    const isSelected = String(assignedRoom) === String(i);
+                    roomOptionsHtml += `<option value="${i}" ${isSelected ? 'selected' : ''}>Room ${i}</option>`;
+                }
+
+                // Add data-* attributes instead of inline event handlers
+                return `
+                <div class="flex justify-between items-center p-2 bg-white rounded-md shadow-sm mb-1 text-sm">
+                    <div class="flex-grow">
+                        <span><strong>Class ${group.class}</strong> (${group.subject})</span>
+                        <span class="font-bold text-indigo-600 ml-2">${group.count} Students</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <select class="roster-room-select text-xs rounded-md border-gray-300 focus:ring-indigo-500 focus:border-indigo-500" data-class="${group.class}" data-subject="${group.subject}">
+                            <option value="auto" ${assignedRoom === 'auto' ? 'selected' : ''}>Auto</option>
+                            ${roomOptionsHtml}
+                        </select>
+                         <button class="roster-view-btn p-1 text-gray-500 hover:text-indigo-600" title="View Students" data-class="${group.class}" data-subject="${group.subject}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" /><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.022 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" /></svg>
+                        </button>
+                        <button class="roster-delete-btn p-1 text-gray-500 hover:text-red-600" title="Delete Group" data-class="${group.class}" data-subject="${group.subject}">
+                           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg>
+                        </button>
+                    </div>
+                </div>
+                `;
+            }).join('');
+
+            attachRosterEventListeners(); // Attach event listeners after rendering
+        }
+
+        // --- FIX: New function to attach event listeners to the roster ---
+        function attachRosterEventListeners() {
+            document.querySelectorAll('.roster-room-select').forEach(select => {
+                select.addEventListener('change', (e) => {
+                    const { class: className, subject } = e.currentTarget.dataset;
+                    const room = e.currentTarget.value;
+                    assignRoomToGroup(parseInt(className), subject, room);
+                });
+            });
+
+            document.querySelectorAll('.roster-view-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    // Use .closest to get the button if the user clicks the SVG inside it
+                    const button = e.target.closest('.roster-view-btn');
+                    const { class: className, subject } = button.dataset;
+                    openRosterModal(parseInt(className), subject);
+                });
+            });
+
+            document.querySelectorAll('.roster-delete-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const button = e.target.closest('.roster-delete-btn');
+                    const { class: className, subject } = button.dataset;
+                    deleteClassGroup(parseInt(className), subject);
+                });
+            });
+        }
+        
+        function deleteClassGroup(className, subject) {
+            examStudents = examStudents.filter(student => {
+                return !(student.class === className && student.subject === subject);
+            });
+            updateExamRoster();
+        }
+
+        function openRosterModal(className, subject) {
+            const modal = document.getElementById('studentModal');
+            const content = document.getElementById('modalContent');
+
+            const studentsInGroup = examStudents.filter(student => student.class === className && student.subject === subject);
+            const studentListHtml = studentsInGroup.map(s => `<li class="flex justify-between items-center p-2 border-b"><span>${s.name}</span><span class="text-sm text-gray-500">${s.roll}</span></li>`).join('');
+            
+            content.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-900">Students in Class ${className} (${subject})</h2>
+                        <p class="text-md text-gray-600">${studentsInGroup.length} students</p>
+                    </div>
+                    <button onclick="closeModal()" class="text-3xl font-light text-gray-400 hover:text-gray-800">&times;</button>
+                </div>
+                <div class="mt-4 max-h-96 overflow-y-auto">
+                    <ul class="divide-y divide-gray-200">
+                        ${studentListHtml || '<li class="text-center text-gray-500 p-4">No students in this group.</li>'}
+                    </ul>
+                </div>
+            `;
+            modal.classList.add('visible');
+        }
+
+        function generateSeating() {
+            const container = document.getElementById('seatingArrangement');
+            const benches = parseInt(document.getElementById('benches').value);
+            const studentsPerRoom = parseInt(document.getElementById('studentsPerRoom').value);
+            const totalRooms = parseInt(document.getElementById('totalRooms').value);
+
+            if (examStudents.length === 0) {
+                container.innerHTML = `<div class="flex items-center justify-center h-full min-h-[300px] bg-orange-50 rounded-lg"><p class="text-center text-orange-600 font-medium">Please add students before generating the seating arrangement.</p></div>`;
+                return;
+            }
+
+            const manuallyAssigned = examStudents.filter(s => s.assignedRoom && s.assignedRoom !== 'auto');
+            const autoAssigned = examStudents.filter(s => !s.assignedRoom || s.assignedRoom === 'auto');
+            
+            let roomAssignments = {};
+
+            const groupedManual = manuallyAssigned.reduce((acc, student) => {
+                const roomKey = `Room ${student.assignedRoom}`;
+                if (!acc[roomKey]) acc[roomKey] = [];
+                acc[roomKey].push(student);
+                return acc;
+            }, {});
+
+            for (const roomKey in groupedManual) {
+                if (groupedManual[roomKey].length > studentsPerRoom) {
+                     container.innerHTML = `<div class="flex items-center justify-center h-full min-h-[300px] bg-red-50 rounded-lg"><p class="text-center text-red-600 font-medium">Error: Too many students assigned to ${roomKey}. Capacity is ${studentsPerRoom}, but ${groupedManual[roomKey].length} were assigned.</p></div>`;
+                     return;
+                }
+                roomAssignments[roomKey] = groupedManual[roomKey];
+            }
+
+            let shuffledAuto = [...autoAssigned].sort(() => Math.random() - 0.5);
+
+            for (let roomNum = 1; roomNum <= totalRooms; roomNum++) {
+                const roomKey = `Room ${roomNum}`;
+                if (!roomAssignments[roomKey]) roomAssignments[roomKey] = [];
+                const remainingCapacity = studentsPerRoom - roomAssignments[roomKey].length;
+                if (remainingCapacity > 0) {
+                    const studentsToAdd = shuffledAuto.splice(0, remainingCapacity);
+                    roomAssignments[roomKey].push(...studentsToAdd);
+                }
+            }
+            
+            if (shuffledAuto.length > 0) {
+                container.innerHTML = `<div class="flex items-center justify-center h-full min-h-[300px] bg-red-50 rounded-lg"><p class="text-center text-red-600 font-medium">Error: Not enough rooms. ${shuffledAuto.length} students remain unseated.</p></div>`;
+                return;
+            }
+
+            const finalArrangements = {};
+            for (const roomKey in roomAssignments) {
+                if(roomAssignments[roomKey].length === 0) continue;
+                
+                let roomStudents = roomAssignments[roomKey].sort(() => Math.random() - 0.5);
+                const totalSeats = roomStudents.length;
+                const rows = Math.ceil(totalSeats / (benches * 2));
+                const roomPlan = Array.from({ length: rows }, () => Array(benches * 2).fill(null));
+                
+                let studentIndex = 0;
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < benches * 2; c++) {
+                        if (studentIndex >= roomStudents.length) break;
+                        
+                        let currentStudent = roomStudents[studentIndex];
+                        let canPlace = true;
+                        
+                        if (c % 2 !== 0 && c > 0 && roomPlan[r][c - 1]) {
+                            const neighbor = roomPlan[r][c - 1];
+                            if (neighbor.class === currentStudent.class && neighbor.subject === currentStudent.subject) {
+                                canPlace = false;
+                            }
+                        }
+
+                        if (canPlace) {
+                            roomPlan[r][c] = currentStudent;
+                            studentIndex++;
+                        } else {
+                            let swapped = false;
+                            for (let i = studentIndex + 1; i < roomStudents.length; i++) {
+                                const potentialSwap = roomStudents[i];
+                                const neighbor = roomPlan[r][c - 1];
+                                if (neighbor.class !== potentialSwap.class || neighbor.subject !== potentialSwap.subject) {
+                                    [roomStudents[studentIndex], roomStudents[i]] = [roomStudents[i], roomStudents[studentIndex]];
+                                    roomPlan[r][c] = roomStudents[studentIndex];
+                                    studentIndex++;
+                                    swapped = true;
+                                    break;
+                                }
+                            }
+                             if (!swapped) {
+                                 roomPlan[r][c] = currentStudent;
+                                 studentIndex++;
+                             }
+                        }
+                    }
+                }
+                 finalArrangements[roomKey] = roomPlan;
+            }
+            
+            seatingPlan = finalArrangements;
+            displayRoomSelector();
+            const firstRoomKey = Object.keys(seatingPlan).find(key => seatingPlan[key] && seatingPlan[key].length > 0);
+            if(firstRoomKey) {
+                switchRoomView(firstRoomKey);
+            } else {
+                container.innerHTML = `<div class="flex items-center justify-center h-full min-h-[300px] bg-gray-50 rounded-lg"><p class="text-gray-500 text-center">No students to arrange.</p></div>`;
+                document.getElementById('roomSelectorContainer').innerHTML = '';
+            }
+        }
+
+        function displayRoomSelector() {
+            const container = document.getElementById('roomSelectorContainer');
+            container.innerHTML = Object.keys(seatingPlan).map(roomKey => 
+                `<button id="btn-${roomKey.replace(' ','-')}" class="px-3 py-1 text-sm font-medium rounded-md transition-colors text-gray-600 bg-gray-200 hover:bg-gray-300" onclick="switchRoomView('${roomKey}')">${roomKey}</button>`
+            ).join('');
+        }
+
+        function switchRoomView(roomKey) {
+            activeRoom = roomKey;
+            const benches = parseInt(document.getElementById('benches').value);
+            displaySeatingPlan(seatingPlan[roomKey], benches, roomKey);
+
+            document.querySelectorAll('#roomSelectorContainer button').forEach(btn => {
+                btn.classList.remove('bg-indigo-600', 'text-white');
+                btn.classList.add('bg-gray-200', 'text-gray-600');
+            });
+            document.getElementById(`btn-${roomKey.replace(' ','-')}`).classList.add('bg-indigo-600', 'text-white');
+            document.getElementById(`btn-${roomKey.replace(' ','-')}`).classList.remove('bg-gray-200', 'text-gray-600');
+        }
+
+        function displaySeatingPlan(plan, benchesPerRow, roomKey) {
+            const container = document.getElementById('seatingArrangement');
+            if (!plan) {
+                 container.innerHTML = `<div class="flex items-center justify-center h-full min-h-[300px] bg-gray-50 rounded-lg"><p class="text-gray-500 text-center">Select a room to view its seating plan.</p></div>`;
+                 return;
+            }
+            let html = '<div class="flex flex-col items-center">';
+            for (let i = 0; i < plan.length; i++) {
+                html += `<div class="flex mb-2">`;
+                for (let j = 0; j < benchesPerRow; j++) {
+                    html += `<div class="flex border-2 border-gray-300 rounded-lg m-1 p-1 bg-gray-50 shadow-inner">`;
+                    const seat1Index = j * 2, seat2Index = j * 2 + 1;
+                    const student1 = plan[i][seat1Index], student2 = plan[i][seat2Index];
+                    
+                    const student1Content = student1 ? `<span>${student1.roll}</span><span class="text-xs text-gray-500">${student1.class} - ${student1.subject}</span>` : `<span class="text-gray-400">Empty</span>`;
+                    const student2Content = student2 ? `<span>${student2.roll}</span><span class="text-xs text-gray-500">${student2.class} - ${student2.subject}</span>` : `<span class="text-gray-400">Empty</span>`;
+
+                    const safeRoomKey = roomKey.replace(' ', '_');
+                    html += `<div id="seat-${safeRoomKey}-${i}-${seat1Index}" class="seat ${student1 ? 'seat-occupied' : ''}" ${student1 ? 'draggable="true"' : ''} ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)">${student1Content}</div>`;
+                    html += `<div id="seat-${safeRoomKey}-${i}-${seat2Index}" class="seat ${student2 ? 'seat-occupied' : ''}" ${student2 ? 'draggable="true"' : ''} ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)">${student2Content}</div>`;
+
+                    html += `</div>`;
+                }
+                html += `</div>`;
+            }
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // --- Drag and Drop Logic ---
+        function dragStart(e) {
+            e.dataTransfer.setData("text/plain", e.target.id);
+            setTimeout(() => { e.target.classList.add('dragging'); }, 0);
+        }
+        function dragEnd(e) { e.target.classList.remove('dragging'); }
+        function dragOver(e) { e.preventDefault(); }
+
+        function drop(e) {
+            e.preventDefault();
+            const sourceId = e.dataTransfer.getData("text/plain");
+            const sourceElement = document.getElementById(sourceId);
+            const targetElement = e.target.closest('.seat');
+            if (!targetElement || sourceId === targetElement.id) return;
+
+            const [s_roomKey_raw, s_row, s_col] = sourceId.split('-').slice(1);
+            const [t_roomKey_raw, t_row, t_col] = targetElement.id.split('-').slice(1);
+
+            const s_roomKey = s_roomKey_raw.replace('_', ' ');
+            const t_roomKey = t_roomKey_raw.replace('_', ' ');
+
+            if(s_roomKey !== t_roomKey) return;
+
+            sourceElement.classList.remove('dragging');
+            
+            const s_rowIndex = parseInt(s_row), s_colIndex = parseInt(s_col);
+            const t_rowIndex = parseInt(t_row), t_colIndex = parseInt(t_col);
+
+            const temp = seatingPlan[s_roomKey][s_rowIndex][s_colIndex];
+            seatingPlan[s_roomKey][s_rowIndex][s_colIndex] = seatingPlan[t_roomKey][t_rowIndex][t_colIndex];
+            seatingPlan[t_roomKey][t_rowIndex][t_colIndex] = temp;
+
+            updateSeatElement(sourceElement, seatingPlan[s_roomKey][s_rowIndex][s_colIndex]);
+            updateSeatElement(targetElement, seatingPlan[t_roomKey][t_rowIndex][t_colIndex]);
+        }
+
+        function updateSeatElement(element, student) {
+            if (student) {
+                element.innerHTML = `<span>${student.roll}</span><span class="text-xs text-gray-500">${student.class} - ${student.subject}</span>`;
+                element.classList.add('seat-occupied');
+                element.setAttribute('draggable', 'true');
+            } else {
+                element.innerHTML = `<span class="text-gray-400">Empty</span>`;
+                element.classList.remove('seat-occupied');
+                element.setAttribute('draggable', 'false');
+            }
+        }
+        
+        function printSeatingArrangement() {
+            const printableArea = document.getElementById('printableArea');
+            if (Object.keys(seatingPlan).length === 0) {
+                const container = document.getElementById('seatingArrangement');
+                container.innerHTML = `<div class="flex items-center justify-center h-full min-h-[300px] bg-red-50 rounded-lg"><p class="text-center text-red-600 font-medium">Please generate a seating arrangement before printing.</p></div>`;
+                return;
+            }
+
+            let printHtml = '';
+            const benchesPerRow = parseInt(document.getElementById('benches').value);
+            
+            for (const roomKey in seatingPlan) {
+                const plan = seatingPlan[roomKey];
+                if(!plan || plan.length === 0) continue;
+
+                printHtml += `<div class="print-page">`;
+                printHtml += `<h2 class="print-title">Seating Arrangement - ${roomKey}</h2>`;
+                
+                let seatCounter = 1;
+                for (let i = 0; i < plan.length; i++) {
+                    printHtml += `<div class="print-row">`;
+                    for (let j = 0; j < benchesPerRow; j++) {
+                        printHtml += `<div class="print-bench">`;
+
+                        const seat1Index = j * 2;
+                        const student1 = plan[i] ? plan[i][seat1Index] : null;
+                        printHtml += `<div class="print-seat-card">`;
+                        if (student1) {
+                            printHtml += `<strong>Seat: ${seatCounter++}</strong>`;
+                            printHtml += `<p><b>${student1.name}</b></p>`;
+                            printHtml += `<p>Roll: ${student1.roll}</p>`;
+                            printHtml += `<p>Class: ${student1.class} (${student1.subject})</p>`;
+                            printHtml += `<p>Room: ${roomKey}</p>`;
+                        } else {
+                            printHtml += `<strong>Seat: ${seatCounter++}</strong><p>(Empty)</p>`;
+                        }
+                        printHtml += `</div>`;
+                        
+                        const seat2Index = j * 2 + 1;
+                        if (plan[i] && seat2Index < plan[i].length) {
+                             const student2 = plan[i][seat2Index];
+                             printHtml += `<div class="print-seat-card">`;
+                             if (student2) {
+                                 printHtml += `<strong>Seat: ${seatCounter++}</strong>`;
+                                 printHtml += `<p><b>${student2.name}</b></p>`;
+                                 printHtml += `<p>Roll: ${student2.roll}</p>`;
+                                 printHtml += `<p>Class: ${student2.class} (${student2.subject})</p>`;
+                                 printHtml += `<p>Room: ${roomKey}</p>`;
+                             } else {
+                                 printHtml += `<strong>Seat: ${seatCounter++}</strong><p>(Empty)</p>`;
+                             }
+                             printHtml += `</div>`;
+                        }
+                        
+                        printHtml += `</div>`; // end print-bench
+                    }
+                    printHtml += `</div>`; // end print-row
+                }
+                printHtml += `</div>`; // end print-page
+            }
+
+            printableArea.innerHTML = printHtml;
+            window.print();
+        }
+
+        // --- Teacher's Panel Logic ---
+        function renderTeacherPanel() {
+            const container = document.getElementById('teacherStudentList');
+            const studentsByClass = Object.entries(masterStudentData).reduce((acc, [roll, data]) => {
+                const { class: studentClass } = data;
+                if (!acc[studentClass]) acc[studentClass] = [];
+                acc[studentClass].push({ roll, ...data });
+                return acc;
+            }, {});
+
+            container.innerHTML = Object.keys(studentsByClass).sort((a,b) => a-b).map(className => {
+                let classHtml = `<div class="border rounded-xl p-4 bg-gray-50/50"><h3 class="text-xl font-semibold mb-4 text-gray-800">Class ${className}</h3>`;
+                classHtml += '<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">';
+                classHtml += studentsByClass[className].map(student => `
+                    <div class="p-4 bg-white border rounded-lg shadow-sm hover:shadow-md hover:border-indigo-300 cursor-pointer transition-all duration-200" onclick="openStudentModal('${student.roll}')">
+                        <p class="font-semibold text-gray-900">${student.name}</p>
+                        <p class="text-sm text-gray-500">${student.roll}</p>
+                    </div>
+                `).join('');
+                classHtml += '</div></div>';
+                return classHtml;
+            }).join('');
+        }
+        
+        // --- Modal Logic ---
+        const modal = document.getElementById('studentModal');
+        modal.addEventListener('click', (e) => { if(e.target === modal) closeModal(); });
+
+        function openStudentModal(roll) {
+            const student = masterStudentData[roll];
+            if (!student) return;
+            const content = document.getElementById('modalContent');
+            let totalMarks = 0, maxMarks = 0;
+            let marksHtml = `<div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50"><tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Marks</th>
+                    </tr></thead><tbody class="bg-white divide-y divide-gray-200">`;
+            for(const [subject, marks] of Object.entries(student.marks)) {
+                totalMarks += marks; maxMarks += 100;
+                marksHtml += `<tr><td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${subject}</td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${marks}</td></tr>`;
+            }
+            marksHtml += `</tbody></table></div>`;
+            const percentage = maxMarks > 0 ? ((totalMarks / maxMarks) * 100).toFixed(2) : 0;
+            
+            content.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-900">${student.name}</h2>
+                        <p class="text-md text-gray-600">Class ${student.class} | Roll No: ${roll}</p>
+                    </div>
+                    <button onclick="closeModal()" class="text-3xl font-light text-gray-400 hover:text-gray-800">&times;</button>
+                </div>
+                <div class="mt-6">
+                    <h3 class="font-semibold text-lg mb-2 text-gray-800">Marksheet</h3>
+                    ${marksHtml}
+                    <div class="mt-4 text-right bg-gray-50 p-4 rounded-lg">
+                        <p class="text-md font-semibold text-gray-700">Total: <span class="font-bold text-indigo-600">${totalMarks} / ${maxMarks}</span></p>
+                        <p class="text-lg font-bold text-gray-700">Percentage: <span class="font-bold text-green-600">${percentage}%</span></p>
+                    </div>
+                </div>
+                <div class="mt-6 border-t pt-4">
+                    <h3 class="font-semibold text-lg mb-2 text-gray-800">Add New Subject Marks</h3>
+                    <div id="addMarkError" class="text-red-500 text-sm mb-2 h-4"></div>
+                    <div class="flex flex-col sm:flex-row gap-3 items-center">
+                        <input type="text" id="newSubject" placeholder="Subject Name" class="flex-grow w-full px-3 py-2 border rounded-lg">
+                        <input type="number" id="newMarks" placeholder="Marks" class="w-full sm:w-28 px-3 py-2 border rounded-lg">
+                        <button onclick="addSubjectMark('${roll}')" class="custom-btn btn-primary w-full sm:w-auto">Add</button>
+                    </div>
+                </div>`;
+            modal.classList.add('visible');
+        }
+
+        function closeModal() {
+            document.getElementById('studentModal').classList.remove('visible');
+        }
+        
+        function addSubjectMark(roll) {
+            const errorDiv = document.getElementById('addMarkError');
+            errorDiv.textContent = '';
+            const subject = document.getElementById('newSubject').value.trim();
+            const marks = parseInt(document.getElementById('newMarks').value);
+            if(subject && !isNaN(marks) && marks >= 0 && marks <= 100) {
+                masterStudentData[roll].marks[subject] = marks;
+                openStudentModal(roll); 
+                renderTeacherPanel();
+            } else {
+                errorDiv.textContent = 'Please enter a valid subject and marks (0-100).';
+            }
+        }
+        
+        // --- Student Result Logic ---
+        function checkResult() {
+            const resultDisplay = document.getElementById('resultDisplay');
+            const selectedClass = parseInt(document.getElementById('resultClass').value);
+            const rollNumberInput = document.getElementById('rollNumber').value.trim();
+
+            if (!rollNumberInput) {
+                resultDisplay.innerHTML = `<div class="text-center text-orange-600 font-medium p-4 bg-orange-100 rounded-lg"><p>Please enter a roll number.</p></div>`;
+                return;
+            }
+            
+            const student = masterStudentData[rollNumberInput];
+
+            if (student && student.class === selectedClass) {
+                let totalMarks = 0, maxMarks = 0;
+                let marksHtml = `<div class="overflow-x-auto border rounded-lg"><table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50"><tr><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Marks</th></tr></thead>
+                    <tbody class="bg-white divide-y divide-gray-200">`;
+                for (const [subject, marks] of Object.entries(student.marks)) {
+                    totalMarks += marks; maxMarks += 100;
+                    marksHtml += `<tr><td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${subject}</td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${marks}</td></tr>`;
+                }
+                marksHtml += `</tbody></table></div>`;
+                const percentage = maxMarks > 0 ? ((totalMarks / maxMarks) * 100).toFixed(2) : 0;
+                resultDisplay.innerHTML = `<div class="border rounded-xl p-6 bg-gray-50/50">
+                        <h3 class="text-xl font-bold mb-2 text-gray-900">${student.name}</h3>
+                        <p class="text-sm text-gray-600 mb-4">Roll: ${rollNumberInput} | Class: ${student.class}</p>
+                        ${marksHtml}
+                        <div class="mt-6 text-right bg-white p-4 rounded-lg shadow-sm">
+                           <p class="text-md font-semibold text-gray-700">Total: <span class="font-bold text-indigo-600">${totalMarks} / ${maxMarks}</span></p>
+                           <p class="text-lg font-bold text-gray-700">Percentage: <span class="font-bold text-green-600">${percentage}%</span></p>
+                        </div></div>`;
+            } else {
+                resultDisplay.innerHTML = `<div class="text-center text-red-600 font-medium p-4 bg-red-100 rounded-lg"><p>Result not found for Roll Number: ${rollNumberInput} in Class ${selectedClass}</p></div>`;
+            }
+        }
+    </script>
+
+</body>
+</html>
+

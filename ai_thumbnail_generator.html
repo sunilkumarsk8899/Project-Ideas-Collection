@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Thumbnail Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for a better look and feel */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .loader {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white">
+
+    <div class="min-h-screen flex flex-col items-center p-4 sm:p-6 md:p-8">
+        <div class="w-full max-w-4xl">
+            <!-- Header -->
+            <header class="text-center mb-8">
+                <h1 class="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 text-transparent bg-clip-text">
+                    AI Thumbnail Generator
+                </h1>
+                <p class="text-gray-400 mt-2">Create stunning thumbnails from a prompt, URL, or image.</p>
+            </header>
+
+            <!-- Input Section -->
+            <div class="bg-gray-800/50 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-gray-700">
+                <div class="flex border-b border-gray-700 mb-4">
+                    <!-- Tab Buttons -->
+                    <button id="tab-prompt" class="tab-button flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-t-md transition-colors bg-gray-800 text-white border-b-2 border-purple-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                        Generate with Prompt
+                    </button>
+                    <button id="tab-url" class="tab-button flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-t-md transition-colors text-gray-400 hover:bg-gray-700/50">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.72"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.72"/></svg>
+                        Generate with URL
+                    </button>
+                    <button id="tab-image" class="tab-button flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-t-md transition-colors text-gray-400 hover:bg-gray-700/50">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.12 5.5-3.03 3.03L12 5l-3.03 3.03-3.03-3.03A3.03 3.03 0 1 1 8.5 2.88l.06.06 3.03 3.03 3.03-3.03.06-.06a3.03 3.03 0 0 1 5.56 3.56Z"/><path d="m11.5 21.12 3.03-3.03L18 22l3.03-3.03 3.03 3.03a3.03 3.03 0 1 1-5.62-1.44l-.06-.06-3.03-3.03-3.03 3.03-.06.06a3.03 3.03 0 0 1-3.56-5.56Z"/></svg>
+                        Edit with Image
+                    </button>
+                </div>
+                
+                <form id="generator-form" class="space-y-4">
+                    <!-- Prompt Input -->
+                    <div id="input-prompt">
+                        <textarea id="prompt" placeholder="e.g., A vibrant synthwave landscape..." class="w-full h-24 p-3 bg-gray-700 border border-gray-600 rounded-md focus:ring-2 focus:ring-purple-500 focus:outline-none transition-colors"></textarea>
+                    </div>
+                    <!-- URL Input -->
+                    <div id="input-url" class="hidden">
+                        <input id="url" type="url" placeholder="e.g., https://www.youtube.com/watch?v=..." class="w-full p-3 bg-gray-700 border border-gray-600 rounded-md focus:ring-2 focus:ring-purple-500 focus:outline-none transition-colors" />
+                    </div>
+                    <!-- Image Input -->
+                    <div id="input-image" class="hidden">
+                        <div class="flex flex-col sm:flex-row gap-4">
+                            <div class="w-full sm:w-1/2">
+                                <label for="image-upload" class="cursor-pointer block">
+                                    <div id="image-preview-container" class="aspect-video w-full border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center text-gray-400 hover:bg-gray-700/50 hover:border-gray-500 transition-colors h-full">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                                        <p class="mt-2 text-sm text-center">Click to upload image</p>
+                                    </div>
+                                </label>
+                                <input id="image-upload" type="file" accept="image/*" class="hidden" />
+                            </div>
+                            <textarea id="image-prompt" placeholder="e.g., Make it cyberpunk style..." class="w-full sm:w-1/2 h-24 sm:h-auto p-3 bg-gray-700 border border-gray-600 rounded-md focus:ring-2 focus:ring-purple-500 focus:outline-none transition-colors"></textarea>
+                        </div>
+                    </div>
+
+                    <div id="button-container" class="flex flex-col sm:flex-row gap-3">
+                        <button type="submit" id="generate-btn" class="w-full sm:w-auto flex-grow justify-center flex items-center gap-2 px-6 py-3 bg-purple-600 rounded-md font-semibold hover:bg-purple-700 transition-all duration-300 disabled:bg-gray-600 disabled:cursor-not-allowed transform hover:scale-105 active:scale-100">
+                            Generate
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Display Area -->
+            <main class="mt-8">
+                <div id="error-container" class="hidden bg-red-900/50 border border-red-700 text-red-300 p-4 rounded-lg items-center gap-3 mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+                    <span id="error-message"></span>
+                </div>
+                
+                <div id="generated-prompt-container" class="hidden mb-4 p-4 bg-gray-800 border border-gray-700 rounded-lg">
+                    <p class="text-sm text-gray-400">Generated prompt from URL:</p>
+                    <p id="generated-prompt-text" class="font-mono text-sm text-gray-200 mt-1 italic"></p>
+                </div>
+                
+                <div id="image-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div id="placeholder" class="col-span-1 sm:col-span-2 text-center text-gray-500 py-10">
+                        <p>Your generated thumbnails will appear here.</p>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script type="module">
+        // --- DOM ELEMENTS ---
+        const form = document.getElementById('generator-form');
+        const generateBtn = document.getElementById('generate-btn');
+        const buttonContainer = document.getElementById('button-container');
+        const imageGrid = document.getElementById('image-grid');
+        const placeholder = document.getElementById('placeholder');
+        const errorContainer = document.getElementById('error-container');
+        const errorMessage = document.getElementById('error-message');
+        const generatedPromptContainer = document.getElementById('generated-prompt-container');
+        const generatedPromptText = document.getElementById('generated-prompt-text');
+
+        const tabs = {
+            prompt: document.getElementById('tab-prompt'),
+            url: document.getElementById('tab-url'),
+            image: document.getElementById('tab-image'),
+        };
+
+        const inputs = {
+            prompt: document.getElementById('input-prompt'),
+            promptText: document.getElementById('prompt'),
+            url: document.getElementById('input-url'),
+            urlText: document.getElementById('url'),
+            image: document.getElementById('input-image'),
+            imagePromptText: document.getElementById('image-prompt'),
+            imageUpload: document.getElementById('image-upload'),
+            imagePreviewContainer: document.getElementById('image-preview-container'),
+        };
+
+        // --- STATE MANAGEMENT ---
+        let activeTab = 'prompt';
+        let imageFile = null;
+        let loading = false;
+        let isInitialGeneration = true;
+        let images = [];
+
+        // --- FUNCTIONS ---
+
+        /**
+         * Renders the UI based on the current state
+         */
+        const render = () => {
+            // Update tabs
+            for (const tabId in tabs) {
+                const tab = tabs[tabId];
+                const input = inputs[tabId];
+                if (tabId === activeTab) {
+                    tab.classList.add('bg-gray-800', 'text-white', 'border-b-2', 'border-purple-500');
+                    tab.classList.remove('text-gray-400', 'hover:bg-gray-700/50');
+                    input.classList.remove('hidden');
+                } else {
+                    tab.classList.remove('bg-gray-800', 'text-white', 'border-b-2', 'border-purple-500');
+                    tab.classList.add('text-gray-400', 'hover:bg-gray-700/50');
+                    input.classList.add('hidden');
+                }
+            }
+             
+            // Update loading state
+            generateBtn.disabled = loading;
+            if(loading && isInitialGeneration) {
+                generateBtn.innerHTML = `<svg class="loader" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>`;
+            } else {
+                 generateBtn.innerHTML = 'Generate';
+            }
+            
+            // Render "Generate New" button
+            let newImagesBtn = document.getElementById('new-images-btn');
+            if (!isInitialGeneration && images.length > 0) {
+                if (!newImagesBtn) {
+                    newImagesBtn = document.createElement('button');
+                    newImagesBtn.id = 'new-images-btn';
+                    newImagesBtn.type = 'button';
+                    newImagesBtn.className = "w-full sm:w-auto flex-grow justify-center flex items-center gap-2 px-6 py-3 bg-gray-600 rounded-md font-semibold hover:bg-gray-700 transition-all disabled:bg-gray-500 disabled:cursor-not-allowed transform hover:scale-105 active:scale-100";
+                    newImagesBtn.addEventListener('click', handleNewImages);
+                    buttonContainer.appendChild(newImagesBtn);
+                }
+                newImagesBtn.disabled = loading;
+                newImagesBtn.innerHTML = loading ? `<svg class="loader" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>` : `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v6h6"/><path d="M21 12A9 9 0 0 0 6 5.3L3 8"/><path d="M21 22v-6h-6"/><path d="M3 12a9 9 0 0 0 15 6.7l3-2.7"/></svg> Generate New`;
+            } else if (newImagesBtn) {
+                newImagesBtn.remove();
+            }
+
+            // Render image grid
+            imageGrid.innerHTML = '';
+            if (loading && images.length === 0) {
+                 placeholder.classList.add('hidden');
+                 for(let i=0; i<4; i++) {
+                    imageGrid.innerHTML += `<div class="aspect-video w-full animate-pulse rounded-lg bg-gray-700"></div>`;
+                 }
+            } else if (images.length > 0) {
+                 placeholder.classList.add('hidden');
+                 images.forEach(src => {
+                     imageGrid.innerHTML += `
+                        <div class="group relative aspect-video w-full overflow-hidden rounded-lg shadow-md transition-all duration-300 hover:shadow-xl">
+                            <img src="${src}" alt="Generated Thumbnail" class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                                <a href="${src}" download="thumbnail-${Date.now()}.png" class="flex items-center gap-2 rounded-full bg-white/90 text-gray-800 px-4 py-2 text-sm font-semibold transition-transform hover:scale-105 active:scale-95">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                                    Download
+                                </a>
+                            </div>
+                        </div>`;
+                 });
+            } else {
+                 placeholder.classList.remove('hidden');
+            }
+        };
+        
+        /**
+         * Sets an error message to display
+         */
+        const setError = (message) => {
+            if (message) {
+                errorMessage.textContent = message;
+                errorContainer.classList.remove('hidden');
+                errorContainer.classList.add('flex');
+            } else {
+                errorContainer.classList.add('hidden');
+                errorContainer.classList.remove('flex');
+            }
+        };
+
+        /**
+         * Handles the main image generation logic
+         */
+        const generateImages = async () => {
+            const apiKey = "";
+            let generationInput;
+            const promptValue = activeTab === 'image' ? inputs.imagePromptText.value : inputs.promptText.value;
+            const urlValue = inputs.urlText.value;
+
+            if (activeTab === 'prompt') generationInput = promptValue;
+            else if (activeTab === 'url') generationInput = urlValue;
+            else if (activeTab === 'image') generationInput = promptValue && imageFile;
+            else return;
+
+            if (!generationInput) {
+                setError(`Please provide all required inputs for the selected tab.`);
+                return;
+            }
+            
+            loading = true;
+            setError(null);
+            generatedPromptContainer.classList.add('hidden');
+            if (isInitialGeneration) {
+                images = [];
+            }
+            render();
+
+            try {
+                if (activeTab === 'prompt' || activeTab === 'url') {
+                    let finalPrompt = promptValue;
+                    if (activeTab === 'url') {
+                        const textModelApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                        const systemPrompt = "You are an expert thumbnail prompt creator. Generate a short, visually descriptive prompt for an AI image generator based on a video URL or topic. Describe key subjects, setting, mood, and style.";
+                        const userQuery = `Generate a thumbnail prompt for a video with this information: "${urlValue}". The prompt should be a single, concise sentence for an eye-catching thumbnail.`;
+                        const textPayload = { contents: [{ parts: [{ text: userQuery }] }], systemInstruction: { parts: [{ text: systemPrompt }] } };
+                        const textResponse = await fetch(textModelApiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(textPayload) });
+                        if (!textResponse.ok) throw new Error(`Failed to generate descriptive prompt. Status: ${textResponse.status}`);
+                        const textResult = await textResponse.json();
+                        finalPrompt = textResult.candidates?.[0]?.content?.parts?.[0]?.text;
+                        if (!finalPrompt) throw new Error("Could not generate a descriptive prompt from the URL.");
+                        generatedPromptText.textContent = `"${finalPrompt}"`;
+                        generatedPromptContainer.classList.remove('hidden');
+                    }
+                    const imageModelApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+                    const payload = { instances: [{ prompt: finalPrompt }], parameters: { sampleCount: 4 } };
+                    const response = await fetch(imageModelApiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                    if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
+                    const result = await response.json();
+                    if (result.predictions && result.predictions.length > 0) {
+                        images = result.predictions.map(p => `data:image/png;base64,${p.bytesBase64Encoded}`);
+                    } else {
+                        throw new Error("Image generation failed. The prompt might be too ambiguous or violate safety policies.");
+                    }
+                } else if (activeTab === 'image') {
+                    const base64ImageData = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result.split(',')[1]);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(imageFile);
+                    });
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${apiKey}`;
+                    const payload = {
+                        contents: [{ parts: [{ text: promptValue }, { inlineData: { mimeType: imageFile.type, data: base64ImageData } }] }],
+                        generationConfig: { responseModalities: ['IMAGE'] },
+                    };
+                    const generated = [];
+                    for (let i = 0; i < 4; i++) {
+                        const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                        if (!response.ok) throw new Error(`API request failed for image ${i+1}.`);
+                        const result = await response.json();
+                        const base64Data = result?.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
+                        if (!base64Data) throw new Error(`API did not return image ${i+1}. The prompt may have been blocked.`);
+                        generated.push(`data:image/png;base64,${base64Data}`);
+                        images = [...generated];
+                        render();
+                    }
+                }
+                isInitialGeneration = false;
+            } catch (err) {
+                console.error("Generation Error:", err);
+                setError(err.message);
+                images = []; // Clear images on error
+            }
+            loading = false;
+            render();
+        };
+
+        // --- EVENT HANDLERS ---
+        const handleTabChange = (tabId) => {
+            activeTab = tabId;
+            setError(null);
+            images = [];
+            isInitialGeneration = true;
+            render();
+        };
+
+        const handleImageUpload = (e) => {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith("image/")) {
+                imageFile = file;
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    inputs.imagePreviewContainer.innerHTML = `<img src="${reader.result}" alt="Upload Preview" class="h-full w-full object-contain p-1 rounded-lg" />`;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                setError("Please select a valid image file.");
+                imageFile = null;
+                inputs.imagePreviewContainer.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg><p class="mt-2 text-sm text-center">Click to upload image</p>`;
+            }
+        };
+        
+        const handleSubmit = (e) => {
+            e.preventDefault();
+            isInitialGeneration = true;
+            generateImages();
+        };
+
+        const handleNewImages = () => {
+            isInitialGeneration = false;
+            generateImages();
+        };
+
+        // --- INITIALIZATION ---
+        tabs.prompt.addEventListener('click', () => handleTabChange('prompt'));
+        tabs.url.addEventListener('click', () => handleTabChange('url'));
+        tabs.image.addEventListener('click', () => handleTabChange('image'));
+        inputs.imageUpload.addEventListener('change', handleImageUpload);
+        form.addEventListener('submit', handleSubmit);
+        
+        render(); // Initial render
+    </script>
+</body>
+</html>

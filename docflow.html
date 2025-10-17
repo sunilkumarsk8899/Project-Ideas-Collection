@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DocuFlow - Document Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .sidebar, .modal-overlay {
+            transition: all 0.3s ease-in-out;
+        }
+        .modal-content {
+            transition: all 0.3s ease-in-out;
+        }
+        .doc-card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .doc-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        .fade-out { animation: fadeOut 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+        .doc-card-thumbnail {
+            height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .doc-card-thumbnail img {
+            max-height: 100%;
+            max-width: 100%;
+            object-fit: cover;
+            border-radius: 0.25rem;
+        }
+        .doc-card-thumbnail .file-icon {
+            width: 64px;
+            height: 64px;
+        }
+        #preview-content img {
+            max-height: 70vh;
+        }
+        .drag-over {
+            border: 3px dashed #3b82f6; /* blue-500 */
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+        /* Active Tab Style */
+        .tab-active {
+            border-bottom-color: #2563eb; /* blue-600 */
+            color: #2563eb; /* blue-600 */
+        }
+        .dark .tab-active {
+            border-bottom-color: #60a5fa; /* blue-400 */
+            color: #60a5fa; /* blue-400 */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+    <div class="flex min-h-screen">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="bg-white dark:bg-gray-800 w-64 p-6 fixed lg:relative top-0 left-0 h-full z-30 transform -translate-x-full lg:translate-x-0 shadow-lg lg:shadow-none">
+            <div class="flex items-center justify-between">
+                <h1 class="text-2xl font-bold text-blue-600 dark:text-blue-400">DocuFlow</h1>
+                 <button id="close-sidebar" class="lg:hidden text-gray-600 dark:text-gray-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+            <nav class="mt-10">
+                <a href="#" class="flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-200 bg-gray-200 dark:bg-gray-700 font-semibold">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                    All Documents
+                </a>
+                <button id="add-new-btn-sidebar" class="w-full flex items-center p-3 mt-4 rounded-lg text-white bg-blue-600 hover:bg-blue-700 font-semibold">
+                   <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    Add New
+                </button>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col">
+            <!-- Header -->
+            <header class="bg-white dark:bg-gray-800 shadow-sm p-4 flex items-center justify-between sticky top-0 z-20">
+                <div class="flex items-center">
+                    <button id="open-sidebar" class="lg:hidden text-gray-600 dark:text-gray-300 mr-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                    </button>
+                    <h2 class="text-xl font-semibold">My Documents</h2>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="theme-toggle" class="text-gray-600 dark:text-gray-300">
+                        <svg id="theme-icon-dark" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                        <svg id="theme-icon-light" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+                    </button>
+                    <div class="relative">
+                        <img class="h-10 w-10 rounded-full object-cover" src="https://placehold.co/100x100/6366f1/white?text=A" alt="User avatar">
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main section -->
+            <main id="main-content" class="flex-1 p-6 md:p-8 lg:p-10 transition-colors duration-300">
+                 <!-- Tabs Navigation -->
+                <div class="mb-6 border-b border-gray-200 dark:border-gray-700">
+                    <nav id="tabs-container" class="-mb-px flex space-x-6" aria-label="Tabs">
+                        <button data-tab="all" class="tab-btn whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 tab-active">All</button>
+                        <button data-tab="image" class="tab-btn whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 border-transparent">Images</button>
+                        <button data-tab="pdf" class="tab-btn whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 border-transparent">PDFs</button>
+                        <button data-tab="text" class="tab-btn whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 border-transparent">Text</button>
+                        <button data-tab="other" class="tab-btn whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 border-transparent">Other</button>
+                    </nav>
+                </div>
+
+                <div id="document-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    <!-- Document cards will be injected here by JavaScript -->
+                </div>
+                <div id="no-docs-message" class="hidden text-center text-gray-500 dark:text-gray-400 mt-16">
+                    <div id="no-docs-content">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" /></svg>
+                        <h3 class="mt-2 text-xl font-medium">No documents yet</h3>
+                        <p class="mt-1 text-sm">Get started by creating a new document or drag & drop files here.</p>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    
+    <!-- Add/Edit Document Modal -->
+    <div id="doc-modal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 z-40 hidden items-center justify-center p-4">
+        <div class="modal-content bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl transform scale-95 opacity-0">
+            <div class="p-6 border-b dark:border-gray-700 flex justify-between items-center">
+                <h3 id="modal-title" class="text-xl font-semibold">Create New Document</h3>
+                <button id="close-modal-btn" class="text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 text-3xl leading-none">&times;</button>
+            </div>
+            <form id="doc-form" class="p-6 space-y-4">
+                <input type="hidden" id="doc-id-input">
+                <div>
+                    <label for="doc-title" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Title</label>
+                    <input type="text" id="doc-title" class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 bg-white dark:bg-gray-700 focus:outline-none focus:ring-blue-500 focus:border-blue-500" required>
+                </div>
+                <div>
+                    <label for="doc-file" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Upload File (Optional)</label>
+                    <input type="file" id="doc-file" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    <p class="text-xs text-gray-500 mt-1">If no file is uploaded, this will be a text-only document.</p>
+                </div>
+                <div id="content-container">
+                    <label for="doc-content" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Content</label>
+                    <textarea id="doc-content" rows="10" class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 bg-white dark:bg-gray-700 focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
+                </div>
+                <div class="flex justify-end pt-4">
+                    <button type="submit" id="save-doc-btn" class="px-5 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">Save Document</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Preview Modal -->
+    <div id="preview-modal" class="modal-overlay fixed inset-0 bg-black bg-opacity-75 z-50 hidden items-center justify-center p-4">
+        <div class="modal-content bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl transform scale-95 opacity-0 flex flex-col">
+            <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+                <h3 id="preview-title" class="text-xl font-semibold truncate"></h3>
+                <button id="close-preview-modal-btn" class="text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 text-3xl leading-none">&times;</button>
+            </div>
+            <div id="preview-content" class="p-6 overflow-auto text-center">
+                <!-- Preview content will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Share Modal -->
+    <div id="share-modal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 z-40 hidden items-center justify-center p-4">
+        <div class="modal-content bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md transform scale-95 opacity-0 text-center p-8">
+            <h3 class="text-xl font-semibold mb-4">Share Document</h3>
+            <p class="text-gray-600 dark:text-gray-400 mb-4">Copy the link below to share your document.</p>
+            <div class="relative bg-gray-100 dark:bg-gray-700 rounded-md p-3 flex items-center mb-4">
+                <input id="share-link-input" type="text" class="bg-transparent w-full text-gray-700 dark:text-gray-200 focus:outline-none" readonly>
+                <button id="copy-link-btn" class="ml-2 px-3 py-1 bg-blue-500 text-white rounded-md text-sm font-semibold hover:bg-blue-600">Copy</button>
+            </div>
+
+            <p class="text-sm text-gray-500 dark:text-gray-400 my-4">Or share directly on:</p>
+            <div id="social-share-links" class="flex justify-center items-center space-x-4">
+                <!-- WhatsApp -->
+                <a id="whatsapp-share-link" href="#" target="_blank" title="Share on WhatsApp" class="p-3 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.894 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.886-.001 2.269.655 4.398 1.919 6.223l.215.326-1.125 4.108 4.155-1.088.35.214z"/></svg>
+                </a>
+                <!-- Telegram -->
+                <a id="telegram-share-link" href="#" target="_blank" title="Share on Telegram" class="p-3 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M9.78 18.65l.288-4.865L15.45 9.5c.325-.31.105-.74-.34-.74L7.5 11.232l-2.447-1.155c-.563-.265-.534-1.08.016-1.32l15.583-5.59c.53-.19 1.023.23.82.78L18.02 18.96c-.22.61-.83.74-1.35.34l-3.83-3.41-1.93 1.86c-.24.23-.55.35-.86.35z"/></svg>
+                </a>
+                <!-- Email -->
+                <a id="email-share-link" href="#" target="_blank" title="Share via Email" class="p-3 bg-gray-600 text-white rounded-full hover:bg-gray-700 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M22 4H2v16h20V4zm-2 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                </a>
+            </div>
+
+            <button id="close-share-modal-btn" class="mt-6 w-full px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-500">Done</button>
+        </div>
+    </div>
+    
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-modal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 z-40 hidden items-center justify-center p-4">
+        <div class="modal-content bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md transform scale-95 opacity-0 text-center p-8">
+            <h3 class="text-xl font-semibold mb-2">Are you sure?</h3>
+            <p class="text-gray-600 dark:text-gray-400 mb-6">This action cannot be undone. All data will be permanently deleted.</p>
+            <div class="flex justify-center space-x-4">
+                <button id="cancel-delete-btn" class="px-6 py-2 bg-gray-200 dark:bg-gray-600 rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-500">Cancel</button>
+                <button id="confirm-delete-btn" class="px-6 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Action Button for Mobile -->
+    <button id="add-new-fab" class="lg:hidden fixed bottom-6 right-6 bg-blue-600 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center z-20">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+    </button>
+    
+    <!-- Notification Toast -->
+    <div id="toast-notification" class="fixed bottom-5 right-5 bg-green-500 text-white py-2 px-4 rounded-lg shadow-xl transform translate-y-20 opacity-0 transition-all duration-300">
+        <!-- Message here -->
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            let documents = JSON.parse(localStorage.getItem('documents')) || [
+                { id: 'doc-1', title: 'Project Proposal', type: 'text', content: 'This document outlines the scope, goals, and timeline for the new Phoenix project. It details the required resources, budget allocation, and expected outcomes over the next six months. Key stakeholders have reviewed and approved this draft.', data: null, fileName: null, lastModified: new Date().toISOString() },
+                { id: 'doc-2', title: 'Company Logo', type: 'image', content: null, data: 'https://placehold.co/600x400/a0aec0/ffffff?text=Logo.png', fileName: 'logo.png', lastModified: new Date().toISOString() },
+                { id: 'doc-3', title: 'Q3 Report', type: 'pdf', content: null, data: null, fileName: 'q3_report.pdf', lastModified: new Date().toISOString() },
+            ];
+            let docIdToDelete = null;
+            let currentTab = 'all';
+
+            // DOM Elements
+            const docGrid = document.getElementById('document-grid');
+            const noDocsMessage = document.getElementById('no-docs-message');
+            const noDocsContent = document.getElementById('no-docs-content');
+            const toast = document.getElementById('toast-notification');
+            const docModal = document.getElementById('doc-modal');
+            const shareModal = document.getElementById('share-modal');
+            const deleteModal = document.getElementById('delete-modal');
+            const previewModal = document.getElementById('preview-modal');
+            const previewTitle = document.getElementById('preview-title');
+            const previewContent = document.getElementById('preview-content');
+            const docForm = document.getElementById('doc-form');
+            const docIdInput = document.getElementById('doc-id-input');
+            const docTitleInput = document.getElementById('doc-title');
+            const docFileInput = document.getElementById('doc-file');
+            const docContentInput = document.getElementById('doc-content');
+            const contentContainer = document.getElementById('content-container');
+            const modalTitle = document.getElementById('modal-title');
+            const shareLinkInput = document.getElementById('share-link-input');
+            const whatsappShareLink = document.getElementById('whatsapp-share-link');
+            const telegramShareLink = document.getElementById('telegram-share-link');
+            const emailShareLink = document.getElementById('email-share-link');
+            const mainContent = document.getElementById('main-content');
+            const tabsContainer = document.getElementById('tabs-container');
+
+            // --- Core Functions ---
+            const saveDocuments = () => localStorage.setItem('documents', JSON.stringify(documents));
+
+            const getFileType = (fileName) => {
+                if (!fileName) return 'text';
+                const extension = fileName.split('.').pop().toLowerCase();
+                if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(extension)) return 'image';
+                if (extension === 'pdf') return 'pdf';
+                return 'other';
+            };
+            
+            const renderDocuments = () => {
+                docGrid.innerHTML = '';
+                
+                const filteredDocuments = documents.filter(doc => currentTab === 'all' || doc.type === currentTab);
+
+                if (filteredDocuments.length === 0) {
+                    noDocsMessage.classList.remove('hidden');
+                    let message = `No ${currentTab} documents found.`;
+                    if (currentTab === 'all') {
+                        message = 'No documents yet. Get started by creating one or dragging a file here.';
+                    }
+                    noDocsContent.querySelector('h3').textContent = `No ${currentTab} documents`;
+                    noDocsContent.querySelector('p').textContent = `You don't have any documents in the "${currentTab}" category.`;
+                    if (currentTab === 'all') {
+                        noDocsContent.querySelector('h3').textContent = 'No documents yet';
+                        noDocsContent.querySelector('p').textContent = 'Get started by creating a new document or drag & drop files here.';
+                    }
+                } else {
+                    noDocsMessage.classList.add('hidden');
+                    filteredDocuments.sort((a, b) => new Date(b.lastModified) - new Date(a.lastModified));
+                    filteredDocuments.forEach(doc => {
+                        let thumbnailHTML = '';
+                        switch (doc.type) {
+                            case 'image':
+                                thumbnailHTML = `<div class="doc-card-thumbnail bg-gray-200 dark:bg-gray-700 rounded-t-lg"><img src="${doc.data}" alt="${doc.title}"></div>`;
+                                break;
+                            case 'pdf':
+                                thumbnailHTML = `<div class="doc-card-thumbnail bg-red-100 dark:bg-red-900 rounded-t-lg"><svg class="file-icon text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg></div>`;
+                                break;
+                            case 'text':
+                                thumbnailHTML = `<div class="p-4 flex-grow"><p class="text-sm text-gray-500 dark:text-gray-400">${(doc.content || '').substring(0, 100)}...</p></div>`;
+                                break;
+                            default:
+                                thumbnailHTML = `<div class="doc-card-thumbnail bg-gray-200 dark:bg-gray-700 rounded-t-lg"><svg class="file-icon text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0011.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg></div>`;
+                                break;
+                        }
+
+                        const docCard = document.createElement('div');
+                        docCard.className = 'doc-card bg-white dark:bg-gray-800 rounded-lg shadow-md flex flex-col fade-in';
+                        docCard.innerHTML = `
+                            ${thumbnailHTML}
+                            <div class="p-4 border-t dark:border-gray-700">
+                                <h4 class="font-bold text-lg truncate">${doc.title}</h4>
+                                <p class="text-xs text-gray-400 truncate">${doc.fileName || 'Text Document'}</p>
+                            </div>
+                            <div class="mt-auto border-t dark:border-gray-700 p-2 flex items-center justify-end space-x-1">
+                                <button title="Preview" class="preview-btn p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700" data-id="${doc.id}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 dark:text-gray-300" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" /><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.022 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" /></svg>
+                                </button>
+                                <button title="Edit" class="edit-btn p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700" data-id="${doc.id}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 dark:text-gray-300" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>
+                                </button>
+                                <button title="Share" class="share-btn p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700" data-id="${doc.id}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 dark:text-gray-300" viewBox="0 0 20 20" fill="currentColor"><path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" /></svg>
+                                </button>
+                                <button title="Download" class="download-btn p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700" data-id="${doc.id}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 dark:text-gray-300" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                                </button>
+                                <button title="Delete" class="delete-btn p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900" data-id="${doc.id}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+                                </button>
+                            </div>
+                        `;
+                        docGrid.appendChild(docCard);
+                    });
+                }
+            };
+            
+            // --- Event Handlers & Modal Logic ---
+            const showToast = (message) => {
+                toast.textContent = message;
+                toast.classList.remove('translate-y-20', 'opacity-0');
+                setTimeout(() => { toast.classList.add('translate-y-20', 'opacity-0'); }, 3000);
+            };
+
+            const toggleModal = (modal, show) => {
+                const modalContent = modal.querySelector('.modal-content');
+                if (show) {
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                    setTimeout(() => {
+                        modal.classList.remove('opacity-0');
+                        modalContent.classList.remove('scale-95', 'opacity-0');
+                    }, 10);
+                } else {
+                    modal.classList.add('opacity-0');
+                    modalContent.classList.add('scale-95', 'opacity-0');
+                    setTimeout(() => {
+                        modal.classList.add('hidden');
+                        modal.classList.remove('flex');
+                    }, 300);
+                }
+            };
+
+            const openDocModalForCreate = () => {
+                docForm.reset();
+                docIdInput.value = '';
+                modalTitle.textContent = 'Create New Document';
+                contentContainer.style.display = 'block';
+                toggleModal(docModal, true);
+            };
+            
+            docFileInput.addEventListener('change', () => {
+                if(docFileInput.files.length > 0) {
+                    contentContainer.style.display = 'none';
+                    if(!docTitleInput.value) {
+                       docTitleInput.value = docFileInput.files[0].name.split('.').slice(0, -1).join('.');
+                    }
+                } else {
+                    contentContainer.style.display = 'block';
+                }
+            });
+
+            docForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const id = docIdInput.value;
+                const title = docTitleInput.value.trim();
+                const content = docContentInput.value.trim();
+                const file = docFileInput.files[0];
+                
+                const processDoc = (fileData) => {
+                    const docData = {
+                        id: id || `doc-${Date.now()}`,
+                        title,
+                        type: file ? getFileType(file.name) : 'text',
+                        content: file ? null : content,
+                        data: fileData,
+                        fileName: file ? file.name : null,
+                        lastModified: new Date().toISOString()
+                    };
+
+                    if (id) {
+                        const docIndex = documents.findIndex(d => d.id === id);
+                        documents[docIndex] = { ...documents[docIndex], ...docData }; // Merge new data
+                        showToast('Document updated!');
+                    } else {
+                        documents.push(docData);
+                        showToast('Document created!');
+                    }
+                    saveDocuments();
+                    renderDocuments();
+                    toggleModal(docModal, false);
+                }
+
+                if (file) {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file); // Always read as data URL for consistency
+                    reader.onload = (event) => processDoc(event.target.result);
+                } else {
+                    processDoc(id ? documents.find(d=>d.id===id).data : null); // Keep old file data if not changed
+                }
+            });
+
+            docGrid.addEventListener('click', (e) => {
+                const targetButton = e.target.closest('button');
+                if (!targetButton) return;
+                const id = targetButton.dataset.id;
+                const doc = documents.find(d => d.id === id);
+
+                if (targetButton.classList.contains('preview-btn')) {
+                    previewTitle.textContent = doc.title;
+                    previewContent.innerHTML = ''; // Clear previous content
+
+                    switch(doc.type) {
+                        case 'image':
+                            previewContent.innerHTML = `<img src="${doc.data}" alt="${doc.title}" class="max-w-full h-auto mx-auto rounded">`;
+                            break;
+                        case 'text':
+                            previewContent.innerHTML = `<pre class="text-left whitespace-pre-wrap text-gray-700 dark:text-gray-300">${doc.content}</pre>`;
+                            break;
+                        case 'pdf':
+                        case 'other':
+                            previewContent.innerHTML = `
+                                <div class="text-center p-8">
+                                    <svg class="mx-auto h-24 w-24 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0011.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                                    <h4 class="mt-4 text-lg font-semibold">${doc.fileName}</h4>
+                                    <p class="mt-2 text-gray-500">Live preview is not available for this file type.</p>
+                                </div>
+                            `;
+                            break;
+                    }
+
+                    toggleModal(previewModal, true);
+                } else if (targetButton.classList.contains('edit-btn')) {
+                    docIdInput.value = doc.id;
+                    docTitleInput.value = doc.title;
+                    docContentInput.value = doc.content || '';
+                    contentContainer.style.display = doc.type === 'text' ? 'block' : 'none';
+                    modalTitle.textContent = 'Edit Document';
+                    toggleModal(docModal, true);
+                } else if (targetButton.classList.contains('download-btn')) {
+                    if (!doc.data) {
+                        const blob = new Blob([doc.content], { type: 'text/plain' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${doc.title.replace(/ /g, '_')}.txt`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        showToast('Download started!');
+                        return;
+                    }
+                    const a = document.createElement('a');
+                    a.href = doc.data;
+                    a.download = doc.fileName || `${doc.title.replace(/ /g, '_')}.txt`;
+                    a.click();
+                    showToast('Download started!');
+                } else if (targetButton.classList.contains('delete-btn')) {
+                    docIdToDelete = id;
+                    toggleModal(deleteModal, true);
+                } else if (targetButton.classList.contains('share-btn')) {
+                    const shareLink = `https://docuflow.app/share/${id}`;
+                    const docTitle = doc.title;
+                    const encodedLink = encodeURIComponent(shareLink);
+                    const encodedTitle = encodeURIComponent(`Check out this document: ${docTitle}`);
+
+                    shareLinkInput.value = shareLink;
+
+                    whatsappShareLink.href = `https://wa.me/?text=${encodedTitle}%0A${encodedLink}`;
+                    telegramShareLink.href = `https://t.me/share/url?url=${encodedLink}&text=${encodedTitle}`;
+                    emailShareLink.href = `mailto:?subject=${encodedTitle}&body=You can view the document here:%0A${encodedLink}`;
+
+                    toggleModal(shareModal, true);
+                }
+            });
+
+            // --- Tab Functionality ---
+            tabsContainer.addEventListener('click', (e) => {
+                if (e.target.classList.contains('tab-btn')) {
+                    currentTab = e.target.dataset.tab;
+                    document.querySelectorAll('.tab-btn').forEach(btn => {
+                        btn.classList.remove('tab-active');
+                        btn.classList.add('border-transparent');
+                    });
+                    e.target.classList.add('tab-active');
+                    e.target.classList.remove('border-transparent');
+                    renderDocuments();
+                }
+            });
+
+            // --- Drag and Drop Functionality ---
+            const handleDroppedFiles = (files) => {
+                [...files].forEach(file => {
+                    const title = file.name.split('.').slice(0, -1).join('.') || file.name;
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = (event) => {
+                        const fileData = event.target.result;
+                        const docData = {
+                            id: `doc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                            title,
+                            type: getFileType(file.name),
+                            content: null,
+                            data: fileData,
+                            fileName: file.name,
+                            lastModified: new Date().toISOString()
+                        };
+                        documents.push(docData);
+                        saveDocuments();
+                        renderDocuments();
+                        showToast(`'${file.name}' uploaded!`);
+                    };
+                });
+            };
+
+            mainContent.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                mainContent.classList.add('drag-over');
+            });
+
+            mainContent.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                mainContent.classList.remove('drag-over');
+            });
+
+            mainContent.addEventListener('drop', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                mainContent.classList.remove('drag-over');
+
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleDroppedFiles(files);
+                }
+            });
+
+            // --- Other listeners ---
+            document.getElementById('close-preview-modal-btn').addEventListener('click', () => toggleModal(previewModal, false));
+            document.getElementById('confirm-delete-btn').addEventListener('click', () => {
+                documents = documents.filter(d => d.id !== docIdToDelete);
+                saveDocuments();
+                renderDocuments();
+                toggleModal(deleteModal, false);
+                showToast('Document deleted.');
+            });
+
+            document.getElementById('copy-link-btn').addEventListener('click', () => {
+                shareLinkInput.select();
+                document.execCommand('copy');
+                showToast('Link copied to clipboard!');
+            });
+            
+            [...document.querySelectorAll('#add-new-btn-sidebar, #add-new-fab')].forEach(btn => btn.addEventListener('click', openDocModalForCreate));
+            document.getElementById('close-modal-btn').addEventListener('click', () => toggleModal(docModal, false));
+            document.getElementById('close-share-modal-btn').addEventListener('click', () => toggleModal(shareModal, false));
+            document.getElementById('cancel-delete-btn').addEventListener('click', () => toggleModal(deleteModal, false));
+            
+            const sidebar = document.getElementById('sidebar');
+            document.getElementById('open-sidebar').addEventListener('click', () => sidebar.classList.remove('-translate-x-full'));
+            document.getElementById('close-sidebar').addEventListener('click', () => sidebar.classList.add('-translate-x-full'));
+            
+            const themeToggle = document.getElementById('theme-toggle');
+            const applyTheme = (theme) => {
+                const themeIconDark = document.getElementById('theme-icon-dark');
+                const themeIconLight = document.getElementById('theme-icon-light');
+                if (theme === 'dark') {
+                    document.documentElement.classList.add('dark');
+                    themeIconLight.classList.add('hidden');
+                    themeIconDark.classList.remove('hidden');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                    themeIconLight.classList.remove('hidden');
+                    themeIconDark.classList.add('hidden');
+                }
+            };
+            const currentTheme = localStorage.getItem('color-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            applyTheme(currentTheme);
+            
+            themeToggle.addEventListener('click', () => {
+                const newTheme = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
+                localStorage.setItem('color-theme', newTheme);
+                applyTheme(newTheme);
+            });
+            
+            // Initial Render
+            renderDocuments();
+        });
+    </script>
+</body>
+</html>
+
