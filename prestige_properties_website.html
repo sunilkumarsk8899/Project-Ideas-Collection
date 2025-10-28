@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prestige Properties | Sale, Purchase, Rent, & Lease</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- AOS (Animate On Scroll) Library CSS -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    
+    <!-- Google Fonts (Inter) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Custom Styles -->
+    <style>
+        /* Set the default font for the site */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Custom animation for hero text */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .animate-fadeInDown {
+            animation: fadeInDown 1s ease-out 0.2s forwards;
+            opacity: 0; /* Start hidden */
+        }
+        
+        .animate-fadeInDown-delay-1 {
+            animation: fadeInDown 1s ease-out 0.4s forwards;
+            opacity: 0;
+        }
+        
+        .animate-fadeInDown-delay-2 {
+            animation: fadeInDown 1s ease-out 0.6s forwards;
+            opacity: 0;
+        }
+
+        /* Custom pulse animation for CTA button */
+        .pulse-light {
+            animation: pulse-light 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse-light {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
+            }
+            50% {
+                box-shadow: 0 0 0 12px rgba(255, 255, 255, 0);
+            }
+        }
+
+        /* Hero background image */
+        .hero-bg {
+            background-image: url('https://images.unsplash.com/photo-1580587771525-78b9dba3b914?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1920&q=80');
+            background-size: cover;
+            background-position: center;
+        }
+    </style>
+</head>
+<body class="bg-white text-gray-700">
+
+    <!-- Header / Navigation -->
+    <header class="bg-white shadow-md sticky top-0 z-50 transition-all duration-300">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-20">
+            <!-- Logo -->
+            <a href="#" class="text-3xl font-extrabold text-indigo-600">
+                Prestige
+                <span class="font-semibold text-gray-700">Properties</span>
+            </a>
+            
+            <!-- Desktop Navigation -->
+            <div class="hidden md:flex items-center space-x-8">
+                <a href="#home" class="font-medium text-gray-600 hover:text-indigo-600 transition duration-300">Home</a>
+                <a href="#services" class="font-medium text-gray-600 hover:text-indigo-600 transition duration-300">Services</a>
+                <a href="#listings" class="font-medium text-gray-600 hover:text-indigo-600 transition duration-300">Listings</a>
+                <a href="#contact" class="font-medium text-gray-600 hover:text-indigo-600 transition duration-300">About Us</a>
+                <a href="#" id="sell-property-btn-desktop" class="font-medium text-indigo-600 hover:text-indigo-800 transition duration-300">Sell Property</a>
+                <a href="#contact" class="px-6 py-2 bg-indigo-600 text-white font-medium rounded-lg shadow-md hover:bg-indigo-700 transition duration-300 transform hover:-translate-y-0.5">
+                    Contact
+                </a>
+            </div>
+            
+            <!-- Mobile Menu Button -->
+            <div class="md:hidden">
+                <button id="mobile-menu-button" class="text-gray-700 focus:outline-none">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+                    </svg>
+                </button>
+            </div>
+        </nav>
+        
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white shadow-xl absolute top-20 left-0 right-0 z-40">
+            <a href="#home" class="block px-6 py-4 text-lg font-medium text-gray-700 hover:bg-indigo-50 transition duration-300">Home</a>
+            <a href="#services" class="block px-6 py-4 text-lg font-medium text-gray-700 hover:bg-indigo-50 transition duration-300">Services</a>
+            <a href="#listings" class="block px-6 py-4 text-lg font-medium text-gray-700 hover:bg-indigo-50 transition duration-300">Listings</a>
+            <a href="#contact" class="block px-6 py-4 text-lg font-medium text-gray-700 hover:bg-indigo-50 transition duration-300">About Us</a>
+            <a href="#" id="sell-property-btn-mobile" class="block px-6 py-4 text-lg font-medium text-indigo-600 hover:bg-indigo-100 transition duration-300">Sell Property</a>
+            <a href="#contact" class="block px-6 py-4 m-4 text-center text-lg font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition duration-300">
+                Contact
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+
+        <!-- Hero Section -->
+        <section id="home" class="relative h-[90vh] min-h-[700px] flex items-center justify-center text-white hero-bg">
+            <!-- Overlay -->
+            <div class="absolute inset-0 bg-black bg-opacity-50"></div>
+            
+            <div class="relative z-10 text-center max-w-4xl mx-auto px-4">
+                <h1 class="text-5xl md:text-7xl font-extrabold leading-tight mb-6 animate-fadeInDown">
+                    Find Your Dream Property
+                </h1>
+                <p class="text-xl md:text-2xl font-light text-gray-200 mb-10 animate-fadeInDown-delay-1">
+                    We specialize in sales, purchases, rentals, and leasing of premium properties.
+                </p>
+                <div class="w-full max-w-2xl mx-auto animate-fadeInDown-delay-2">
+                    <form id="search-form" class="flex flex-col sm:flex-row gap-2 bg-white p-3 rounded-lg shadow-2xl">
+                        <input id="search-input" type="text" placeholder="Enter a location, zip code, or address..." class="flex-grow p-4 text-gray-700 text-lg rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500" list="search-suggestions">
+                        <datalist id="search-suggestions">
+                            <!-- Suggestions will be populated by JavaScript -->
+                        </datalist>
+                        <button type="submit" class="px-8 py-4 bg-indigo-600 text-white text-lg font-semibold rounded-md shadow-md hover:bg-indigo-700 transition duration-300 transform hover:-translate-y-0.5">
+                            Search
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- Services Section -->
+        <section id="services" class="py-24 bg-gray-50">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center max-w-2xl mx-auto mb-16">
+                    <h2 class="text-4xl md:text-5xl font-extrabold text-gray-800 mb-4" data-aos="fade-up">Our Services</h2>
+                    <p class="text-lg text-gray-600" data-aos="fade-up" data-aos-delay="100">
+                        A comprehensive suite of services to meet all your real estate needs.
+                    </p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <!-- Service Card 1: Sale -->
+                    <div class="bg-white p-8 rounded-xl shadow-lg text-center transform transition duration-500 hover:shadow-2xl hover:-translate-y-2" data-aos="fade-up" data-aos-delay="100">
+                        <div class="p-4 bg-indigo-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
+                            <!-- Icon: Home Sale -->
+                            <svg class="w-10 h-10 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6-4a1 1 0 001-1v-1a1 1 0 10-2 0v1a1 1 0 001 1zm10 0a1 1 0 001-1v-1a1 1 0 10-2 0v1a1 1 0 001 1z"></path></svg>
+                        </div>
+                        <h3 class="text-2xl font-bold text-gray-800 mb-3">Property Sales</h3>
+                        <p class="text-gray-600">We market your property to a wide audience to ensure a fast and profitable sale.</p>
+                    </div>
+                    
+                    <!-- Service Card 2: Purchase -->
+                    <div class="bg-white p-8 rounded-xl shadow-lg text-center transform transition duration-500 hover:shadow-2xl hover:-translate-y-2" data-aos="fade-up" data-aos-delay="200">
+                        <div class="p-4 bg-indigo-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
+                            <!-- Icon: Key/Purchase -->
+                            <svg class="w-10 h-10 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H5v-2H3v-2H1v-2h2v-2h2v-2h2v2h2v2h2l1.257-1.257A6 6 0 0117 7z"></path></svg>
+                        </div>
+                        <h3 class="text-2xl font-bold text-gray-800 mb-3">Property Purchase</h3>
+                        <p class="text-gray-600">Our agents help you find and secure your ideal property at the best possible price.</p>
+                    </div>
+                    
+                    <!-- Service Card 3: Rent -->
+                    <div class="bg-white p-8 rounded-xl shadow-lg text-center transform transition duration-500 hover:shadow-2xl hover:-translate-y-2" data-aos="fade-up" data-aos-delay="300">
+                        <div class="p-4 bg-indigo-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
+                            <!-- Icon: Building/Rent -->
+                            <svg class="w-10 h-10 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                        </div>
+                        <h3 class="text-2xl font-bold text-gray-800 mb-3">Property Rentals</h3>
+                        <p class="text-gray-600">We offer a vast portfolio of high-quality properties for short-term and long-term rent.</p>
+                    </div>
+
+                    <!-- Service Card 4: Lease -->
+                    <div class="bg-white p-8 rounded-xl shadow-lg text-center transform transition duration-500 hover:shadow-2xl hover:-translate-y-2" data-aos="fade-up" data-aos-delay="400">
+                        <div class="p-4 bg-indigo-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
+                            <!-- Icon: Document/Lease -->
+                            <svg class="w-10 h-10 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        </div>
+                        <h3 class="text-2xl font-bold text-gray-800 mb-3">Commercial Lease</h3>
+                        <p class="text-gray-600">Find the perfect space for your business with our commercial leasing expertise.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Featured Listings Section -->
+        <section id="listings" class="py-24 bg-white">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center max-w-2xl mx-auto mb-16">
+                    <h2 id="listings-title" class="text-4xl md:text-5xl font-extrabold text-gray-800 mb-4" data-aos="fade-up">Featured Properties</h2>
+                    <p class="text-lg text-gray-600" data-aos="fade-up" data-aos-delay="100">
+                        Handpicked listings from our agents. New properties added daily.
+                    </p>
+                </div>
+                
+                <!-- Grid for dynamically generated property cards -->
+                <div id="listings-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                    <!-- Property cards will be injected here by JavaScript -->
+                </div>
+            </div>
+        </section>
+
+        <!-- New Gallery Section -->
+        <section id="gallery" class="py-24 bg-gray-50">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center max-w-2xl mx-auto mb-16">
+                    <h2 class="text-4xl md:text-5xl font-extrabold text-gray-800 mb-4" data-aos="fade-up">Our Property Gallery</h2>
+                    <p class="text-lg text-gray-600" data-aos="fade-up" data-aos-delay="100">
+                        A glimpse into the stunning properties we represent.
+                    </p>
+                </div>
+                
+                <!-- Gallery Image Grid -->
+                <div id="gallery-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+                    <!-- Images will be injected here by JavaScript -->
+                </div>
+            </div>
+        </section>
+        
+        <!-- CTA Section -->
+        <section id="contact" class="py-24 bg-gradient-to-r from-indigo-700 to-purple-800 text-white">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center" data-aos="fade-in" data-aos-duration="1500">
+                <h2 class="text-4xl md:text-5xl font-extrabold mb-6">Ready to Make Your Move?</h2>
+                <p class="text-xl text-indigo-100 max-w-2xl mx-auto mb-10">
+                    Whether you're buying, selling, or just exploring, our team is ready to provide expert advice and world-class service.
+                </p>
+                <a href="#" id="cta-get-in-touch" class="inline-block px-12 py-5 bg-white text-indigo-700 text-lg font-bold rounded-lg shadow-2xl transform transition duration-300 hover:scale-105 hover:bg-gray-100 pulse-light">
+                    Get in Touch
+                </a>
+            </div>
+        </section>
+        
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-gray-300">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+                <!-- Column 1: Brand -->
+                <div class="md:col-span-2 lg:col-span-1">
+                    <a href="#" class="text-3xl font-extrabold text-white">
+                        Prestige
+                        <span class="font-semibold text-gray-400">Properties</span>
+                    </a>
+                    <p class="mt-4 text-gray-400">Your trusted partner in real estate, providing exceptional service and unparalleled expertise.</p>
+                    <div class="flex space-x-4 mt-6">
+                        <!-- Social Icons -->
+                        <a href="#" class="text-gray-400 hover:text-white transition duration-300">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clip-rule="evenodd" /></svg>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition duration-300">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.71v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84" /></svg>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition duration-300">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clip-rule="evenodd" /></svg>
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Column 2: Quick Links -->
+                <div>
+                    <h4 class="text-lg font-semibold text-white mb-5">Quick Links</h4>
+                    <ul class="space-y-3">
+                        <li><a href="#services" class="hover:text-white transition duration-300">Services</a></li>
+                        <li><a href="#listings" class="hover:text-white transition duration-300">Listings</a></li>
+                        <li><a href="#contact" class="hover:text-white transition duration-300">Contact Us</a></li>
+                        <li><a href="#" class="hover:text-white transition duration-300">Blog</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Column 3: Services -->
+                <div>
+                    <h4 class="text-lg font-semibold text-white mb-5">Our Services</h4>
+                    <ul class="space-y-3">
+                        <li><a href="#" class="hover:text-white transition duration-300">Property Sales</a></li>
+                        <li><a href="#" class="hover:text-white transition duration-300">Property Purchase</a></li>
+                        <li><a href="#" class="hover:text-white transition duration-300">Property Rentals</a></li>
+                        <li><a href="#" class="hover:text-white transition duration-300">Commercial Lease</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Column 4: Contact -->
+                <div>
+                    <h4 class="text-lg font-semibold text-white mb-5">Get in Touch</h4>
+                    <ul class="space-y-3">
+                        <li class="flex items-start">
+                            <span class="mt-1 mr-3 flex-shrink-0">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            </span>
+                            123 Prestige Ave, Real Estate City, 10001
+                        </li>
+                        <li class="flex items-center">
+                            <span class="mr-3 flex-shrink-0">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                            </span>
+                            (123) 456-7890
+                        </li>
+                        <li class="flex items-center">
+                            <span class="mr-3 flex-shrink-0">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                            </span>
+                            contact@prestige.com
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Bottom Bar -->
+            <div class="mt-12 border-t border-gray-700 pt-8 text-center">
+                <p class="text-sm text-gray-400">&copy; 2025 Prestige Properties. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Property Card HTML Template (hidden) -->
+    <template id="property-card-template">
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden flex flex-col transform transition duration-500 hover:shadow-2xl hover:-translate-y-2" data-aos="fade-up">
+            <div class="relative">
+                <img class="card-img h-64 w-full object-cover" src="https://placehold.co/800x600/e2e8f0/cccccc?text=Loading..." alt="Property Image">
+                <div class="card-status absolute top-4 left-4 px-4 py-1.5 rounded-full text-sm font-semibold text-white">
+                    <!-- Status (e.g., For Sale) -->
+                </div>
+            </div>
+            <div class="p-6 flex flex-col flex-grow">
+                <h3 class="card-title text-2xl font-bold text-gray-800 mb-2 truncate">
+                    <!-- Title (e.g., Modern Villa) -->
+                </h3>
+                <p class="card-location text-indigo-500 font-medium mb-4">
+                    <!-- Location (e.g., Miami, FL) -->
+                </p>
+                <div class="flex items-center text-gray-600 space-x-6 mb-6">
+                    <div class="flex items-center space-x-2">
+                        <!-- Bed Icon -->
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"></path></svg>
+                        <span class="card-beds font-medium"><!-- 4 Beds --></span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <!-- Bath Icon -->
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13.5M9 12.753h6M17.25 12.753a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z"></path></svg>
+                        <span class="card-baths font-medium"><!-- 3 Baths --></span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <!-- Area Icon -->
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 0h-4m4 0l-5-5"></path></svg>
+                        <span class="card-sqft font-medium"><!-- 2,500 SqFt --></span>
+                    </div>
+                </div>
+                <div class="mt-auto flex justify-between items-center">
+                    <div class="card-price text-3xl font-extrabold text-indigo-600">
+                        <!-- $1,200,000 -->
+                    </div>
+                    <button class="details-button px-5 py-2 bg-indigo-100 text-indigo-700 font-semibold rounded-lg hover:bg-indigo-200 transition duration-300">
+                        Details
+                    </button>
+                </div>
+            </div>
+        </div>
+    </template>
+    
+    <!-- Universal Modal -->
+    <div id="modal-container" class="hidden fixed inset-0 bg-black bg-opacity-70 z-[100] flex items-center justify-center p-4">
+        <!-- Modal Content Box -->
+        <div id="modal-content" class="bg-white rounded-2xl shadow-2xl w-full max-h-[90vh] overflow-y-auto relative p-8 transition-all duration-300">
+            <!-- Modal content will be injected here -->
+        </div>
+    </div>
+    
+    <!-- Floating Contact/Query Button -->
+    <button id="floating-query-btn" class="fixed bottom-6 right-6 z-50 bg-indigo-600 text-white p-4 rounded-full shadow-lg transform transition duration-300 hover:scale-110 hover:bg-indigo-700">
+        <!-- Icon: Question Mark or Agent -->
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+    </button>
+    
+    <!-- AOS (Animate On Scroll) Library JS -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            // 1. Initialize AOS (Animate on Scroll)
+            AOS.init({
+                duration: 800,  // Animation duration
+                once: true,     // Whether animation should happen only once
+                offset: 100,    // Offset (in px) from the original trigger point
+            });
+
+            // 2. Mobile Menu Toggle
+            const menuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            
+            menuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+                // Optional: Toggle icon
+                if (mobileMenu.classList.contains('hidden')) {
+                    menuButton.innerHTML = `<svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>`;
+                } else {
+                    menuButton.innerHTML = `<svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>`;
+                }
+            });
+
+            // 3. Modal Control System
+            const modalContainer = document.getElementById('modal-container');
+            const modalContent = document.getElementById('modal-content');
+            const modalDefaultSize = 'max-w-2xl'; // Default size
+            const searchForm = document.getElementById('search-form');
+            const searchInput = document.getElementById('search-input');
+            const listingsTitle = document.getElementById('listings-title');
+            let galleryImages = []; // To store gallery image URLs
+            let currentImageIndex = 0; // To track slider index
+
+            function openModal(htmlContent, sizeClass = modalDefaultSize) {
+                // Reset size classes
+                modalContent.classList.remove('max-w-2xl', 'max-w-5xl');
+                // Add new size class
+                modalContent.classList.add(sizeClass);
+                
+                modalContent.innerHTML = htmlContent;
+                modalContainer.classList.remove('hidden');
+                // Add close button functionality
+                modalContent.querySelector('.close-modal-btn')?.addEventListener('click', closeModal);
+            }
+
+            // Close modal when clicking on the overlay
+            modalContainer.addEventListener('click', (e) => {
+                if (e.target === modalContainer) {
+                    closeModal();
+                }
+            });
+            
+            // --- Modal Content Templates ---
+
+            // Template for Property Details
+            function getDetailsModalHTML(data) {
+                return `
+                    <button class="close-modal-btn absolute top-4 right-5 text-gray-500 hover:text-gray-800 text-3xl">&times;</button>
+                    <img src="https://source.unsplash.com/random/800x600/?house,modern,architecture&sig=${data.imgSig}" alt="${data.title}" class="w-full h-72 object-cover rounded-lg mb-6">
+                    <h2 class="text-4xl font-extrabold text-gray-800 mb-2">${data.title}</h2>
+                    <p class="text-indigo-600 font-semibold text-lg mb-4">${data.location}</p>
+                    <div class="text-4xl font-extrabold text-indigo-700 mb-6">${data.price}</div>
+                    
+                    <div class="flex items-center text-gray-700 space-x-8 mb-8">
+                        <div class="flex items-center space-x-2">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"></path></svg>
+                            <span class="text-lg font-medium">${data.beds}</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13.5M9 12.753h6M17.25 12.753a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z"></path></svg>
+                            <span class="text-lg font-medium">${data.baths}</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 0h-4m4 0l-5-5"></path></svg>
+                            <span class="text-lg font-medium">${data.sqft}</span>
+                        </div>
+                    </div>
+                    
+                    <p class="text-gray-600 mb-8">
+                        Discover this stunning ${data.title.toLowerCase()} located in the heart of ${data.location}. Featuring ${data.beds}, ${data.baths}, and ${data.sqft} of beautifully designed space, this property is a rare find.
+                    </p>
+                    
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <button id="view-images-btn" data-img-sig="${data.imgSig}" class="flex-1 px-6 py-4 bg-indigo-600 text-white font-bold rounded-lg shadow-md hover:bg-indigo-700 transition duration-300">View Images</button>
+                        <button id="contact-agent-btn" class="flex-1 px-6 py-4 bg-gray-700 text-white font-bold rounded-lg shadow-md hover:bg-gray-800 transition duration-300">Contact Agent</button>
+                    </div>
+                `;
+            }
+
+            // --- START: Added Missing Functions ---
+
+            // Template for Contact Form
+            function getContactFormHTML(title) {
+                let isSellForm = title === 'Sell Your Property';
+                
+                return `
+                    <button class="close-modal-btn absolute top-4 right-5 text-gray-500 hover:text-gray-800 text-3xl">&times;</button>
+                    <h2 class="text-3xl font-extrabold text-gray-800 mb-6">${title}</h2>
+                    <form id="modal-contact-form" class="space-y-5">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            <div>
+                                <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                                <input type="text" id="name" name="name" required class="w-full p-3 text-lg rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                            <div>
+                                <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                                <input type="email" id="email" name="email" required class="w-full p-3 text-lg rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                        </div>
+                        
+                        ${isSellForm ? `
+                        <div>
+                            <label for="address" class="block text-sm font-medium text-gray-700 mb-1">Property Address</label>
+                            <input type="text" id="address" name="address" required class="w-full p-3 text-lg rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                            <div>
+                                <label for="property-type" class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                                <select id="property-type" name="property-type" class="w-full p-3 text-lg rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <option>For Sale</option>
+                                    <option>For Rent</option>
+                                    <option>Lease</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="bedrooms" class="block text-sm font-medium text-gray-700 mb-1">Bedrooms</label>
+                                <input type="number" id="bedrooms" name="bedrooms" min="1" class="w-full p-3 text-lg rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                            <div>
+                                <label for="bathrooms" class="block text-sm font-medium text-gray-700 mb-1">Bathrooms</label>
+                                <input type="number" id="bathrooms" name="bathrooms" min="1" class="w-full p-3 text-lg rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Upload Images (Optional)</label>
+                            <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                                <div class="space-y-1 text-center">
+                                    <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8a4 4 0 01-4 4H28m0-12l-4 4m4-4l4 4m-4-4v12m12 4V24a4 4 0 00-4-4H28m-4-4v12m0-12L20 8m4 4l-4-4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                                    </svg>
+                                    <p class="text-sm text-gray-600">Drag & drop files or <span class="text-indigo-600">click to browse</span></p>
+                                </div>
+                            </div>
+                        </div>
+                        ` : ''}
+                        
+                        <div>
+                            <label for="message" class="block text-sm font-medium text-gray-700 mb-1">Message</label>
+                            <textarea id="message" name="message" rows="4" required class="w-full p-3 text-lg rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                        </div>
+                        
+                        <div>
+                            <button type="submit" class="w-full px-8 py-4 bg-indigo-600 text-white text-lg font-bold rounded-lg shadow-md hover:bg-indigo-700 transition duration-300">
+                                Send Message
+                            </button>
+                        </div>
+                    </form>
+                `;
+            }
+
+            // Template for Dealer Info
+            function getDealerInfoHTML() {
+                return `
+                    <button class="close-modal-btn absolute top-4 right-5 text-gray-500 hover:text-gray-800 text-3xl">&times;</button>
+                    <div class="text-center">
+                        <img src="https://placehold.co/150x150/e0e7ff/6366f1?text=Agent" alt="Dealer Avatar" class="w-32 h-32 rounded-full mx-auto mb-6 border-4 border-indigo-200 shadow-lg">
+                        <h2 class="text-3xl font-extrabold text-gray-800 mb-2">Your Prestige Agent</h2>
+                        <p class="text-lg text-indigo-600 font-semibold mb-6">Senior Property Consultant</p>
+                        
+                        <ul class="space-y-4 text-left max-w-sm mx-auto text-lg text-gray-700">
+                            <li class="flex items-center">
+                                <svg class="w-6 h-6 text-indigo-600 mr-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                                <span>(123) 456-7890</span>
+                            </li>
+                            <li class="flex items-center">
+                                <svg class="w-6 h-6 text-indigo-600 mr-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                                <span>contact@prestige.com</span>
+                            </li>
+                            <li class="flex items-start">
+                                <svg class="w-6 h-6 text-indigo-600 mr-4 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                <span>123 Prestige Ave, Real Estate City, 10001</span>
+                            </li>
+                        </ul>
+                    </div>
+                `;
+            }
+
+            // Template for Property Image Gallery
+            function getImageGalleryHTML(imgSig) {
+                let imagesHTML = '';
+                const keywords = ['kitchen', 'bedroom', 'bathroom', 'livingroom', 'backyard', 'dining'];
+                for (let i = 0; i < 6; i++) {
+                    imagesHTML += `
+                        <div class="aspect-w-1 aspect-h-1" data-aos="fade-up" data-aos-delay="${i * 100}">
+                            <img src="https://source.unsplash.com/random/800x600/?house,${keywords[i]}&sig=${imgSig + i + 1}" alt="Property Image ${i + 1}" class="w-full h-full object-cover rounded-lg shadow-md">
+                        </div>
+                    `;
+                }
+                
+                return `
+                    <button class="close-modal-btn absolute top-4 right-5 text-gray-500 hover:text-gray-800 text-3xl z-10">&times;</button>
+                    <h2 class="text-3xl font-extrabold text-gray-800 mb-6">Property Image Gallery</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        ${imagesHTML}
+                    </div>
+                `;
+            }
+
+            // Template for Gallery Slider
+            function getGallerySliderHTML(imgUrl, index, total) {
+                return `
+                    <div class="relative w-full h-full bg-black">
+                        <!-- Close Button (Inside) -->
+                        <button class="close-modal-btn absolute top-2 right-4 text-white text-5xl opacity-80 hover:opacity-100 z-50">&times;</button>
+                        
+                        <!-- Image Counter -->
+                        <div class="absolute top-4 left-4 z-50 text-white text-lg font-semibold bg-black bg-opacity-50 px-3 py-1 rounded-lg">
+                            ${index + 1} / ${total}
+                        </div>
+                        
+                        <!-- Main Image -->
+                        <img src="${imgUrl}" alt="Gallery Image ${index + 1}" class="w-full h-full object-contain">
+                        
+                        <!-- Prev Button -->
+                        <button id="slider-prev-btn" class="absolute left-0 top-1/2 -translate-y-1/2 z-50 text-white text-4xl p-4 opacity-70 hover:opacity-100 transition">
+                            &#10094;
+                        </button>
+                        
+                        <!-- Next Button -->
+                        <button id="slider-next-btn" class="absolute right-0 top-1/2 -translate-y-1/2 z-50 text-white text-4xl p-4 opacity-70 hover:opacity-100 transition">
+                            &#10095;
+                        </button>
+                    </div>
+                `;
+            }
+
+            // --- END: Added Missing Functions ---
+
+            // 4. Dynamic Property Card Generation (Refactored for Search)
+            const listingsGrid = document.getElementById('listings-grid');
+            const cardTemplate = document.getElementById('property-card-template');
+
+            // Helper function to get random item from array
+            const getRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
+            
+            // Helper function to format numbers as currency
+            const formatPrice = (price) => `$${new Intl.NumberFormat('en-US').format(price)}`;
+            
+            // Helper function to format numbers with commas
+            const formatSqFt = (sqft) => new Intl.NumberFormat('en-US').format(sqft);
+
+            // Random data pools
+            const locations = ['Miami Beach, FL', 'Beverly Hills, CA', 'Aspen, CO', 'The Hamptons, NY', 'Chicago, IL', 'Austin, TX'];
+            const types = ['Modern Villa', 'Luxury Condo', 'Spacious Apartment', 'Lakefront Home', 'Downtown Penthouse', 'Suburban Oasis'];
+            const statuses = [
+                { text: 'For Sale', 'class': 'bg-indigo-600' },
+                { text: 'For Rent', 'class': 'bg-green-600' },
+                { text: 'Lease', 'class': 'bg-yellow-600' },
+                { text: 'Sold', 'class': 'bg-gray-700' }
+            ];
+
+            // --- NEW: Populate Search Suggestions ---
+            const suggestionsList = document.getElementById('search-suggestions');
+            // Use a Set to avoid duplicate suggestions
+            const suggestionSet = new Set([
+                ...locations,
+                ...types,
+                ...statuses.map(s => s.text),
+                '2 Beds', '3 Beds', '4 Beds', '5 Beds',
+                '2 Baths', '3 Baths', '4 Baths'
+            ]);
+            
+            // Create and append an <option> for each unique suggestion
+            suggestionSet.forEach(suggestion => {
+                const option = document.createElement('option');
+                option.value = suggestion;
+                suggestionsList.appendChild(option);
+            });
+            // --- END NEW ---
+
+            function generateListings(searchTerm = '') {
+                // Clear existing grid
+                listingsGrid.innerHTML = '';
+                
+                const normalizedSearch = searchTerm.toLowerCase().trim();
+                let listingsFound = 0;
+                let attempts = 0; // Safety break for while loop
+                
+                // Use search term for image query, fallback to default
+                const imgQuery = normalizedSearch ? normalizedSearch : 'house,modern,architecture';
+
+                // Update listings title
+                if (normalizedSearch) {
+                    listingsTitle.textContent = `Showing results for "${searchTerm}"`;
+                } else {
+                    listingsTitle.textContent = 'Featured Properties';
+                }
+
+                // Generate up to 6 listings that match the search
+                while (listingsFound < 6 && attempts < 50) {
+                    attempts++; // Increment attempts to prevent infinite loops
+                    
+                    // Generate random data
+                    const randomStatus = getRandom(statuses);
+                    const randomPrice = Math.floor(Math.random() * 4000 + 500) * 1000;
+                    const randomBeds = Math.floor(Math.random() * 4) + 2; // 2-5 beds
+                    const randomBaths = Math.floor(Math.random() * 3) + 2; // 2-4 baths
+                    const randomSqFt = Math.floor(Math.random() * 3000) + 1500; // 1500-4500 sqft
+                    const randomPriceFormatted = randomStatus.text === 'For Rent' 
+                        ? `${formatPrice(Math.floor(randomPrice / 300))}/mo` 
+                        : formatPrice(randomPrice);
+                    const randomTitle = getRandom(types);
+                    const randomLocation = getRandom(locations);
+                    const randomBedsText = `${randomBeds} Beds`;
+                    const randomBathsText = `${randomBaths} Baths`;
+                    const randomSqFtText = `${formatSqFt(randomSqFt)} SqFt`;
+
+                    // Check if generated data matches search term
+                    const matchesSearch = !normalizedSearch || 
+                                          randomTitle.toLowerCase().includes(normalizedSearch) || 
+                                          randomLocation.toLowerCase().includes(normalizedSearch) ||
+                                          randomStatus.text.toLowerCase().includes(normalizedSearch) ||
+                                          randomBedsText.toLowerCase().includes(normalizedSearch) ||
+                                          randomBathsText.toLowerCase().includes(normalizedSearch);
+
+                    if (matchesSearch) {
+                        listingsFound++;
+                        
+                        // Clone the template
+                        const cardClone = cardTemplate.content.cloneNode(true);
+                        
+                        // Get card elements
+                        const card = cardClone.querySelector('.bg-white');
+                        const img = cardClone.querySelector('.card-img');
+                        const statusEl = cardClone.querySelector('.card-status');
+                        const titleEl = cardClone.querySelector('.card-title');
+                        const locationEl = cardClone.querySelector('.card-location');
+                        const bedsEl = cardClone.querySelector('.card-beds');
+                        const bathsEl = cardClone.querySelector('.card-baths');
+                        const sqftEl = cardClone.querySelector('.card-sqft');
+                        const priceEl = cardClone.querySelector('.card-price');
+                        const detailsButton = cardClone.querySelector('.details-button');
+                        
+                        // Use unique sig for image based on attempts
+                        const imgSig = attempts;
+
+                        // Set image source
+                        img.src = `https://source.unsplash.com/random/800x600/?${imgQuery}&sig=${imgSig}`;
+                        img.alt = `Image of a ${randomTitle}`;
+                        
+                        // Populate card text
+                        statusEl.textContent = randomStatus.text;
+                        statusEl.className += ` ${randomStatus.class}`;
+                        
+                        titleEl.textContent = randomTitle;
+                        locationEl.textContent = randomLocation;
+                        
+                        bedsEl.textContent = randomBedsText;
+                        bathsEl.textContent = randomBathsText;
+                        sqftEl.textContent = randomSqFtText;
+                        
+                        priceEl.textContent = randomPriceFormatted;
+
+                        // Store data on the details button for the modal
+                        detailsButton.dataset.title = randomTitle;
+                        detailsButton.dataset.location = randomLocation;
+                        detailsButton.dataset.price = randomPriceFormatted;
+                        detailsButton.dataset.beds = randomBedsText;
+                        detailsButton.dataset.baths = randomBathsText;
+                        detailsButton.dataset.sqft = randomSqFtText;
+                        detailsButton.dataset.imgSig = imgSig;
+
+                        // Set AOS delay for staggered effect
+                        card.setAttribute('data-aos-delay', (listingsFound - 1) * 100);
+                        
+                        // Append to grid
+                        listingsGrid.appendChild(cardClone);
+                    }
+                }
+                
+                // Show a message if no results were found
+                if (listingsFound === 0) {
+                    listingsGrid.innerHTML = `<p class="text-lg text-gray-600 md:col-span-3 text-center">No properties found matching your search. Please try again.</p>`;
+                }
+            }
+            
+            // Initial load of properties
+            generateListings();
+
+            // 5. New Gallery Section Generation
+            const galleryGrid = document.getElementById('gallery-grid');
+            const galleryKeywords = [
+                'house,interior', 'house,livingroom', 'house,kitchen', 'house,bedroom',
+                'house,bathroom', 'house,backyard', 'house,architecture', 'house,pool'
+            ];
+            
+            galleryKeywords.forEach((keyword, index) => {
+                const imgContainer = document.createElement('div');
+                imgContainer.className = 'aspect-w-1 aspect-h-1 transform transition duration-500 hover:scale-105 cursor-pointer';
+                imgContainer.setAttribute('data-aos', 'fade-up');
+                imgContainer.setAttribute('data-aos-delay', (index % 4) * 100);
+                
+                const img = document.createElement('img');
+                const imgUrl = `https://source.unsplash.com/random/800x800/?${keyword}&sig=${index + 100}`; // Use different sigs
+                img.src = imgUrl;
+                img.alt = `Gallery Image ${index + 1}`;
+                img.className = 'w-full h-full object-cover rounded-xl shadow-lg';
+                img.dataset.index = index;
+                
+                imgContainer.appendChild(img);
+                galleryGrid.appendChild(imgContainer);
+                
+                // Store URL for slider
+                galleryImages.push(imgUrl);
+            });
+
+            // 6. Event Listeners for Modals
+            
+            // --- Property Details ---
+            listingsGrid.addEventListener('click', (e) => {
+                const detailsButton = e.target.closest('.details-button');
+                if (detailsButton) {
+                    openModal(getDetailsModalHTML(detailsButton.dataset));
+                }
+            });
+
+            // --- Modal Click Delegation (for buttons inside modals) ---
+            document.body.addEventListener('click', (e) => {
+                // --- View Images ---
+                if (e.target.id === 'view-images-btn') {
+                    const imgSig = e.target.dataset.imgSig;
+                    openModal(getImageGalleryHTML(imgSig), 'max-w-5xl'); // Use larger modal for gallery
+                }
+                
+                // --- Contact Agent ---
+                if (e.target.id === 'contact-agent-btn') {
+                    openModal(getContactFormHTML('Contact Agent About Property'));
+                }
+                
+                // --- Form Submission (Simulation) ---
+                const contactForm = e.target.closest('#modal-contact-form');
+                if (contactForm) {
+                    // Check if submit listener is already attached
+                    if (!contactForm.dataset.listenerAttached) {
+                        contactForm.addEventListener('submit', (submitEvent) => {
+                            submitEvent.preventDefault();
+                            form.innerHTML = `
+                                <div class="text-center">
+                                    <h3 class="text-2xl font-bold text-gray-800 mb-4">Message Sent!</h3>
+                                    <p class="text-gray-600 mb-6">An agent will get back to you shortly. Thank you!</p>
+                                    <button class="close-modal-btn px-6 py-3 bg-indigo-600 text-white font-bold rounded-lg shadow-md hover:bg-indigo-700 transition duration-300">Close</button>
+                                </div>
+                            `;
+                            // Re-add close listener to the new button
+                            modalContent.querySelector('.close-modal-btn')?.addEventListener('click', closeModal);
+                        });
+                        contactForm.dataset.listenerAttached = 'true'; // Mark listener as attached
+                    }
+                    
+                    // Handle form submission triggered by button click
+                    if(e.target.type === 'submit') {
+                        // The logic inside the submit listener will handle it
+                    }
+                }
+                
+                // --- Gallery Slider Controls ---
+                if (e.target.id === 'slider-next-btn') {
+                    currentImageIndex = (currentImageIndex + 1) % galleryImages.length;
+                    openModal(getGallerySliderHTML(galleryImages[currentImageIndex], currentImageIndex, galleryImages.length), 'max-w-5xl');
+                    modalContent.style.padding = '0';
+                    modalContent.style.backgroundColor = 'transparent';
+                }
+                
+                if (e.target.id === 'slider-prev-btn') {
+                    currentImageIndex = (currentImageIndex - 1 + galleryImages.length) % galleryImages.length;
+                    openModal(getGallerySliderHTML(galleryImages[currentImageIndex], currentImageIndex, galleryImages.length), 'max-w-5xl');
+                    modalContent.style.padding = '0';
+                    modalContent.style.backgroundColor = 'transparent';
+                }
+            });
+            
+            // --- Gallery Grid Click Listener ---
+            galleryGrid.addEventListener('click', (e) => {
+                if (e.target.tagName === 'IMG') {
+                    currentImageIndex = parseInt(e.target.dataset.index, 10);
+                    // Open the modal with the slider content
+                    // We also change the size class and remove padding by adding a new class
+                    openModal(getGallerySliderHTML(galleryImages[currentImageIndex], currentImageIndex, galleryImages.length), 'max-w-5xl');
+                    // Make the slider modal content have no padding
+                    modalContent.style.padding = '0';
+                    modalContent.style.backgroundColor = 'transparent';
+                }
+            });
+            
+            // --- "Sell Property" Buttons ---
+            function openSellForm(e) {
+                e.preventDefault();
+                openModal(getContactFormHTML('Sell Your Property'));
+            }
+            document.getElementById('sell-property-btn-desktop').addEventListener('click', openSellForm);
+            document.getElementById('sell-property-btn-mobile').addEventListener('click', openSellForm);
+            
+            // --- CTA "Get in Touch" Button ---
+            document.getElementById('cta-get-in-touch').addEventListener('click', (e) => {
+                e.preventDefault();
+                openModal(getContactFormHTML('Contact Us'));
+            });
+
+            // --- Floating Query Button ---
+            document.getElementById('floating-query-btn').addEventListener('click', () => {
+                openModal(getDealerInfoHTML());
+            });
+
+            // --- Search Form Submission ---
+            searchForm.addEventListener('submit', (e) => {
+                e.preventDefault(); // Stop page from reloading
+                const searchTerm = searchInput.value;
+                generateListings(searchTerm);
+                
+                // Scroll to the listings section to show results
+                document.getElementById('listings').scrollIntoView({ behavior: 'smooth' });
+            });
+
+            // --- Reset modal style on close ---
+            function closeModal() {
+                modalContainer.classList.add('hidden');
+                modalContent.innerHTML = '';
+                // Reset styles
+                modalContent.style.padding = '';
+                modalContent.style.backgroundColor = '';
+            }
+            
+            // --- Form Submission Fix ---
+            // This listener needs to be on the modalContent and delegate, 
+            // because the form is dynamically added.
+            modalContent.addEventListener('submit', (e) => {
+                if (e.target.id === 'modal-contact-form') {
+                    e.preventDefault();
+                    e.target.innerHTML = `
+                        <div class="text-center">
+                            <h3 class="text-2xl font-bold text-gray-800 mb-4">Message Sent!</h3>
+                            <p class="text-gray-600 mb-6">An agent will get back to you shortly. Thank you!</p>
+                            <button class="close-modal-btn px-6 py-3 bg-indigo-600 text-white font-bold rounded-lg shadow-md hover:bg-indigo-700 transition duration-300">Close</button>
+                        </div>
+                    `;
+                    // Re-add close listener to the new button
+                    modalContent.querySelector('.close-modal-btn')?.addEventListener('click', closeModal);
+                }
+            });
+
+            // --- Remove problematic delegation ---
+            // We remove the old delegation from `document.body`
+            // and replace it with the one on `modalContent`
+            // (The code for this is a bit complex, so we'll just simplify the logic)
+            // The `document.body` listener is still needed for 'view-images-btn', 'contact-agent-btn', etc.
+            // But we will remove the form submission logic from it.
+            
+            // --- REVISED Modal Click Delegation ---
+            document.body.addEventListener('click', (e) => {
+                // --- View Images ---
+                if (e.target.id === 'view-images-btn') {
+                    const imgSig = e.target.dataset.imgSig;
+                    openModal(getImageGalleryHTML(imgSig), 'max-w-5xl'); // Use larger modal for gallery
+                }
+                
+                // --- Contact Agent ---
+                if (e.target.id === 'contact-agent-btn') {
+                    openModal(getContactFormHTML('Contact Agent About Property'));
+                }
+                
+                // --- Gallery Slider Controls ---
+                if (e.target.id === 'slider-next-btn') {
+                    currentImageIndex = (currentImageIndex + 1) % galleryImages.length;
+                    openModal(getGallerySliderHTML(galleryImages[currentImageIndex], currentImageIndex, galleryImages.length), 'max-w-5xl');
+                    modalContent.style.padding = '0';
+                    modalContent.style.backgroundColor = 'transparent';
+                }
+                
+                if (e.target.id === 'slider-prev-btn') {
+                    currentImageIndex = (currentImageIndex - 1 + galleryImages.length) % galleryImages.length;
+                    openModal(getGallerySliderHTML(galleryImages[currentImageIndex], currentImageIndex, galleryImages.length), 'max-w-5xl');
+                    modalContent.style.padding = '0';
+                    modalContent.style.backgroundColor = 'transparent';
+                }
+            });
+
+
+        });
+    </script>
+</body>
+</html>
+

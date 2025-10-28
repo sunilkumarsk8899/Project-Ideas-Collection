@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BuildPure | Construction & Water Solutions</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Font: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- GSAP (Core) and ScrollTrigger (Plugin) CDNs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+    <style>
+        /* Base styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* Tailwind gray-50 */
+            color: #1f2937; /* Tailwind gray-800 */
+        }
+
+        /* Custom class for active tab */
+        .tab-active {
+            background-color: #2563eb; /* Tailwind blue-600 */
+            color: white;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        
+        /* Custom class for inactive tab */
+        .tab-inactive {
+            background-color: white;
+            color: #374151; /* Tailwind gray-700 */
+        }
+        
+        /* Smooth scroll behavior */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Helper class to hide elements for GSAP */
+        .gsap-reveal {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        
+        /* --- Styles for Modals (Shared) --- */
+        
+        /* Modal (Popup) */
+        .modal {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            padding: 1rem;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        .modal.is-open {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 1rem;
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            transform: scale(0.9);
+            transition: all 0.3s ease;
+        }
+        .modal.is-open .modal-content {
+            transform: scale(1);
+        }
+        .modal-close {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            background-color: #e5e7eb; /* gray-200 */
+            border-radius: 9999px;
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 110;
+        }
+        .modal-close:hover {
+            background-color: #d1d5db; /* gray-300 */
+        }
+
+        /* --- NEW: Slider Buttons --- */
+        .slider-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: rgba(255, 255, 255, 0.8);
+            border: 2px solid #e5e7eb;
+            border-radius: 9999px;
+            width: 3rem;
+            height: 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 110;
+            transition: all 0.2s ease;
+            margin: 0 1rem; /* Add margin to bring it inside the modal area */
+        }
+        .slider-btn:hover {
+            background-color: white;
+            transform: translateY(-50%) scale(1.1);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        .slider-btn.left-0 {
+            left: 0;
+        }
+        .slider-btn.right-0 {
+            right: 0;
+        }
+
+        /* --- Styles for Main Gallery --- */
+        .gallery-item-main .gallery-overlay {
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+        .gallery-item-main:hover .gallery-overlay {
+            opacity: 1;
+        }
+        .gallery-item-main .gallery-image {
+            transition: transform 0.5s ease;
+        }
+        .gallery-item-main:hover .gallery-image {
+            transform: scale(1.1);
+        }
+
+        /* --- NEW: Hero Video Styles --- */
+        #hero-video-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 0;
+        }
+        #hero-video-container iframe {
+            /* This complex styling ensures the 16:9 video covers the container */
+            width: 100vw;
+            height: 56.25vw; /* 16:9 aspect ratio (9 / 16 * 100) */
+            min-height: 100vh; /* Make sure it's at least the full height */
+            min-width: 177.77vh; /* 16:9 aspect ratio (16 / 9 * 100) */
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none; /* Disables click events on the video */
+        }
+
+    </style>
+</head>
+<body class="overflow-x-hidden">
+
+    <!-- Header / Navigation -->
+    <header class="bg-white/80 backdrop-blur-md shadow-sm fixed top-0 left-0 right-0 z-50">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="#" class="text-3xl font-extrabold text-blue-600">
+                Build<span class="text-orange-500">Pure</span>
+            </a>
+            <div class="hidden md:flex space-x-6 items-center">
+                <a href="#home" class="text-gray-600 hover:text-blue-600 transition duration-300">Home</a>
+                <a href="#construction-services" class="text-gray-600 hover:text-blue-600 transition duration-300">Construction</a>
+                <a href="#water-services" class="text-gray-600 hover:text-blue-600 transition duration-300">Water Purification</a>
+                <a href="#why-us" class="text-gray-600 hover:text-blue-600 transition duration-300">Why Us</a>
+                <a href="#locations" class="text-gray-600 hover:text-blue-600 transition duration-300">Locations</a>
+                <a href="#about" class="text-gray-600 hover:text-blue-600 transition duration-300">About</a>
+                <a href="#contact" class="bg-blue-600 text-white px-5 py-2 rounded-full font-semibold hover:bg-blue-700 transition duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+                    Get a Quote
+                </a>
+            </div>
+            <div class="md:hidden">
+                <button class="text-gray-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <!-- UPDATED: Removed background color classes, letting video show through -->
+    <section id="home" class="relative pt-32 pb-24 md:pt-48 md:pb-40 text-white overflow-hidden">
+        <!-- NEW: Video Background Container -->
+        <div id="hero-video-container">
+            <!-- UPDATED: Swapped video and fixed embed URL parameters -->
+<!-- <iframe width="560" height="315" src="https://www.youtube.com/embed/mUZfX8xOyvs?si=jRqtHoMGYGGS2_zK&autoplay=1&mute=1&controls=0&rel=0&modestbranding=1&playsinline=1" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; autoplay" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe> -->
+
+<!-- Local / non-YouTube video (autoplay, muted, loop) -->
+<video id="hero-local-video" autoplay muted loop playsinline preload="auto" style="width:100vw; height:56.25vw; min-height:100vh; min-width:177.77vh; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); pointer-events:none;">
+    <source src="https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+</video>
+        </div>
+
+        <!-- UPDATED: Darkened overlay for better text readability on video -->
+        <div class="absolute inset-0 bg-black/40 z-10"></div> 
+        <!-- UPDATED: Added z-index to keep pattern visible -->
+        <div class="absolute inset-0 opacity-10 z-10" style="background-image: url('data:image/svg+xml,%3Csvg width=%2260%22 height=%2260%22 viewBox=%220 0 60 60%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cg fill=%22none%22 fill-rule=%22evenodd%22%3E%3Cg fill=%22%23ffffff%22 fill-opacity=%220.4%22%3E%3Cpath d=%22M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm-2-20v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM20 6v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM0 0v4h2v-4h4v-2h-4v-4h-2v4h-4v2h4zM24 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM20 22v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM34 2v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM58 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM36 58v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM20 46v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4z%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
+        
+        <!-- UPDATED: Increased z-index to put content on top of video and overlays -->
+        <div class="container mx-auto px-6 relative z-20">
+            <h1 class="hero-line-1 text-4xl md:text-6xl font-extrabold mb-4 opacity-0">Building Your Future.</h1>
+            <h1 class="hero-line-2 text-4xl md:text-6xl font-extrabold text-orange-400 mb-8 opacity-0">Purifying Your Life.</h1>
+            <p class="hero-p text-lg md:text-xl max-w-2xl mb-10 opacity-0">From solid foundations to crystal clear water, BuildPure delivers excellence you can trust. We are your one-stop solution for premier construction and advanced water purification services.</p>
+            <a href="#contact" class="hero-btn opacity-0 bg-orange-500 text-white px-8 py-3 rounded-full font-bold text-lg hover:bg-orange-600 transition duration-300 shadow-2xl hover:shadow-xl transform hover:-translate-y-1">
+                Explore Our Services
+            </a>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-16 md:py-24">
+
+        <!-- Construction Services Section -->
+        <section id="construction-services" class="gsap-reveal">
+            <div class="bg-white p-8 md:p-12 rounded-2xl shadow-xl border border-gray-100">
+                <h2 class="text-3xl md:text-4xl font-bold text-center mb-4 text-blue-600">Premier Construction Services</h2>
+                <p class="text-lg text-gray-600 text-center max-w-2xl mx-auto mb-12">With decades of combined experience, our team tackles projects of all sizes with precision and a commitment to quality. We build spaces that last, function beautifully, and exceed expectations.</p>
+                <div class="grid md:grid-cols-3 gap-8">
+                    <!-- Service Card 1 -->
+                    <div class="bg-blue-50 p-6 rounded-lg border border-blue-100">
+                        <h4 class="font-bold text-lg mb-2">Residential Building</h4>
+                        <p class="text-sm text-gray-700">Custom homes, multi-family units, and stunning renovations. We bring your vision for "home" to life.</p>
+                    </div>
+                    <!-- Service Card 2 -->
+                    <div class="bg-blue-50 p-6 rounded-lg border border-blue-100">
+                        <h4 class="font-bold text-lg mb-2">Commercial & Retail</h4>
+                        <p class="text-sm text-gray-700">Office spaces, retail storefronts, and functional commercial centers built for business success.</p>
+                    </div>
+                    <!-- Service Card 3 -->
+                    <div class="bg-blue-50 p-6 rounded-lg border border-blue-100">
+                        <h4 class="font-bold text-lg mb-2">Industrial Projects</h4>
+                        <p class="text-sm text-gray-700">Warehouses, manufacturing plants, and heavy-duty infrastructure delivered on time and on budget.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- === NEW WATER PURIFICATION SECTION === -->
+        <section id="water-services" class="py-16 md:py-24 mt-16 md:mt-24 gsap-reveal">
+            <div class="bg-white p-8 md:p-12 rounded-2xl shadow-xl border border-gray-100">
+                <h2 class="text-3xl md:text-4xl font-bold text-center mb-4 text-orange-600">Advanced Water Purification</h2>
+                <p class="text-lg text-gray-600 text-center max-w-2xl mx-auto mb-12">Clean, safe water is essential. We provide cutting-edge water treatment solutions for residential, commercial, and industrial needs, ensuring purity you can taste and trust.</p>
+                <div class="grid md:grid-cols-3 gap-8">
+                    <!-- Service Card 1 -->
+                    <div class="bg-orange-50 p-6 rounded-lg border border-orange-100">
+                        <h4 class="font-bold text-lg mb-2">Residential RO Systems</h4>
+                        <p class="text-sm text-gray-700">Crystal clear, great-tasting water from every tap. We install and maintain whole-home reverse osmosis systems.</p>
+                    </div>
+                    <!-- Service Card 2 -->
+                    <div class="bg-orange-50 p-6 rounded-lg border border-orange-100">
+                        <h4 class="font-bold text-lg mb-2">Commercial Filtration</h4>
+                        <p class="text-sm text-gray-700">Solutions for restaurants, hotels, and offices. Ensure high-quality water for your customers and employees.</p>
+                    </div>
+                    <!-- Service Card 3 -->
+                    <div class="bg-orange-50 p-6 rounded-lg border border-orange-100">
+                        <h4 class="font-bold text-lg mb-2">Industrial Water Treatment</h4>
+                        <p class="text-sm text-gray-700">Custom-designed systems for manufacturing, agriculture, and processing. We handle complex water quality challenges.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- === WHY CHOOSE US SECTION === -->
+        <section id="why-us" class="py-16 md:py-24 mt-16 md:mt-24 gsap-reveal">
+            <div class="bg-white p-8 md:p-12 rounded-2xl shadow-xl border border-gray-100">
+                <h2 class="text-3xl md:text-4xl font-bold text-center mb-4">Why Choose BuildPure?</h2>
+                <p class="text-lg text-gray-600 text-center max-w-2xl mx-auto mb-12">We are more than just contractors; we are partners in your success. We are built on a foundation of trust, quality, and an unwavering commitment to our clients.</p>
+                <div class="grid md:grid-cols-2 gap-10">
+                    
+                    <!-- Benefit Card 1: Quality -->
+                    <div class="flex items-start space-x-4">
+                        <div class="flex-shrink-0 bg-blue-100 text-blue-600 p-3 rounded-full">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path></svg>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-lg mb-1">Unmatched Quality</h4>
+                            <p class="text-gray-600">We use only the highest-grade materials and meticulous craftsmanship to ensure every project stands the test of time.</p>
+                        </div>
+                    </div>
+
+                    <!-- Benefit Card 2: Experience -->
+                    <div class="flex items-start space-x-4">
+                        <div class="flex-shrink-0 bg-blue-100 text-blue-600 p-3 rounded-full">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-1.657-1.343-3-3-3s-3 1.343-3 3v2m6 0H9m12-9a3 3 0 01-3 3H9a3 3 0 01-3-3V9a3 3 0 013-3h6a3 3 0 013 3v2z"></path></svg>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-lg mb-1">Expert Experience</h4>
+                            <p class="text-gray-600">Our team of certified engineers, builders, and water experts brings decades of combined experience to every job.</p>
+                        </div>
+                    </div>
+
+                    <!-- Benefit Card 3: Safety -->
+                    <div class="flex items-start space-x-4">
+                        <div class="flex-shrink-0 bg-blue-100 text-blue-600 p-3 rounded-full">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-lg mb-1">Safety First</h4>
+                            <p class="text-gray-600">We adhere to the strictest safety protocols, ensuring a secure work site for our team and peace of mind for you.</p>
+                        </div>
+                    </div>
+
+                    <!-- Benefit Card 4: On-Time -->
+                    <div class="flex items-start space-x-4">
+                        <div class="flex-shrink-0 bg-blue-100 text-blue-600 p-3 rounded-full">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-lg mb-1">On-Time Delivery</h4>
+                            <p class="text-gray-600">We respect your time. Our efficient project management ensures we meet our deadlines, every time.</p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section> <!-- End Why Us -->
+
+        <!-- === PROJECT GALLERY SECTION === -->
+        <section id="gallery" class="py-16 md:py-24 mt-16 md:mt-24 gsap-reveal">
+            <div class="bg-white p-8 md:p-12 rounded-2xl shadow-xl border border-gray-100">
+                <h2 class="text-3xl md:text-4xl font-bold text-center mb-4">Project Gallery</h2>
+                <p class="text-lg text-gray-600 text-center max-w-2xl mx-auto mb-12">A selection of our finished construction projects, from foundation to facade.</p>
+                
+                <div id="main-gallery" class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+                    
+                    <!-- Gallery Image 1 -->
+                    <div class="gallery-item-main relative rounded-lg overflow-hidden shadow-md cursor-pointer group h-56">
+                        <img src="https://placehold.co/600x600/e0e7ff/374151?text=New+Build+Exterior" alt="Construction Project 1" class="gallery-image w-full h-full object-cover">
+                        <div class="gallery-overlay absolute inset-0 bg-black/60 flex items-center justify-center">
+                            <span class="text-white font-semibold">View Image</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Gallery Image 2 -->
+                    <div class="gallery-item-main relative rounded-lg overflow-hidden shadow-md cursor-pointer group h-56">
+                        <img src="https://placehold.co/600x600/dbeafe/1d4ed8?text=Foundation+Work" alt="Construction Project 2" class="gallery-image w-full h-full object-cover">
+                        <div class="gallery-overlay absolute inset-0 bg-black/60 flex items-center justify-center">
+                            <span class="text-white font-semibold">View Image</span>
+                        </div>
+                    </div>
+
+                    <!-- Gallery Image 3 -->
+                    <div class="gallery-item-main relative rounded-lg overflow-hidden shadow-md cursor-pointer group h-56">
+                        <img src="https://placehold.co/600x600/e0e7ff/374151?text=Interior+Finishing" alt="Construction Project 3" class="gallery-image w-full h-full object-cover">
+                        <div class="gallery-overlay absolute inset-0 bg-black/60 flex items-center justify-center">
+                            <span class="text-white font-semibold">View Image</span>
+                        </div>
+                    </div>
+
+                    <!-- Gallery Image 4 -->
+                    <div class="gallery-item-main relative rounded-lg overflow-hidden shadow-md cursor-pointer group h-56">
+                        <img src="https://placehold.co/600x600/dbeafe/1d4ed8?text=Commercial+Facade" alt="Construction Project 4" class="gallery-image w-full h-full object-cover">
+                        <div class="gallery-overlay absolute inset-0 bg-black/60 flex items-center justify-center">
+                            <span class="text-white font-semibold">View Image</span>
+                        </div>
+                    </div>
+
+                    <!-- Gallery Image 5 -->
+                    <div class="gallery-item-main relative rounded-lg overflow-hidden shadow-md cursor-pointer group h-56">
+                        <img src="https://placehold.co/600x600/dbeafe/1d4ed8?text=Steel+Framing" alt="Construction Project 5" class="gallery-image w-full h-full object-cover">
+                        <div class="gallery-overlay absolute inset-0 bg-black/60 flex items-center justify-center">
+                            <span class="text-white font-semibold">View Image</span>
+                        </div>
+                    </div>
+
+                    <!-- Gallery Image 6 -->
+                    <div class="gallery-item-main relative rounded-lg overflow-hidden shadow-md cursor-pointer group h-56">
+                        <img src="https://placehold.co/600x600/e0e7ff/374151?text=Site+Planning" alt="Construction Project 6" class="gallery-image w-full h-full object-cover">
+                        <div class="gallery-overlay absolute inset-0 bg-black/60 flex items-center justify-center">
+                            <span class="text-white font-semibold">View Image</span>
+                        </div>
+                    </div>
+
+                    <!-- Gallery Image 7 (FIXED) -->
+                    <div class="gallery-item-main relative rounded-lg overflow-hidden shadow-md cursor-pointer group h-56">
+                        <!-- FIXED the broken src attribute -->
+                        <img src="https://placehold.co/600x600/dbeafe/1d4ed8?text=Renovation" alt="Construction Project 7" class="gallery-image w-full h-full object-cover">
+                        <div class="gallery-overlay absolute inset-0 bg-black/60 flex items-center justify-center">
+                            <span class="text-white font-semibold">View Image</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Gallery Image 8 (ADDED FOR EVEN GRID) -->
+                    <div class="gallery-item-main relative rounded-lg overflow-hidden shadow-md cursor-pointer group h-56">
+                        <img src="https://placehold.co/600x600/e0e7ff/374151?text=Final+Walkthrough" alt="Construction Project 8" class="gallery-image w-full h-full object-cover">
+                        <div class="gallery-overlay absolute inset-0 bg-black/60 flex items-center justify-center">
+                            <span class="text-white font-semibold">View Image</span>
+                        </div>
+                    </div>
+                    
+                    <!-- 
+                        REMOVED GARBLED/DUPLICATE HTML THAT WAS HERE.
+                        The stray <input>, <form>, <select>, <textarea>, etc. have been deleted.
+                    -->
+
+                </div> <!-- End #main-gallery -->
+            </div> <!-- End wrapper div -->
+        </section> <!-- End #gallery -->
+
+
+        <!-- === LOCATIONS SECTION === -->
+        <section id="locations" class="py-16 md:py-24 mt-16 md:mt-24 gsap-reveal">
+            <h2 class="text-3xl md:text-4xl font-bold text-center mb-4">Our Projects & Locations</h2>
+            <p class="text-lg text-gray-600 text-center max-w-2xl mx-auto mb-12">We've built quality across the region. Explore our featured projects to see galleries from each site.</p>
+            
+            <div id="locations-grid" class="grid md:grid-cols-3 gap-8">
+                <!-- Location Card 1 -->
+                <div class="location-card bg-white p-6 rounded-xl shadow-lg border border-gray-100 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer" data-project-id="proj1">
+                    <img src="https://placehold.co/600x400/2563eb/ffffff?text=City+Center+Plaza" alt="City Center Plaza" class="w-full h-48 object-cover rounded-lg mb-4">
+                    <h4 class="font-bold text-xl mb-2 text-blue-600">City Center Plaza</h4>
+                    <p class="text-gray-600 text-sm mb-4">A 20-story commercial hub, featuring state-of-the-art office spaces and retail storefronts.</p>
+                    <span class="font-semibold text-blue-500 hover:text-blue-700">View Project Gallery &rarr;</span>
+                </div>
+                
+                <!-- Location Card 2 -->
+                <div class="location-card bg-white p-6 rounded-xl shadow-lg border border-gray-100 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer" data-project-id="proj2">
+                    <img src="https://placehold.co/600x400/f97316/ffffff?text=AquaFresh+Plant" alt="AquaFresh Industrial Plant" class="w-full h-48 object-cover rounded-lg mb-4">
+                    <h4 class="font-bold text-xl mb-2 text-orange-600">AquaFresh Industrial Plant</h4>
+                    <p class="text-gray-600 text-sm mb-4">A large-scale water purification plant servicing over 50,000 residents in the metro area.</p>
+                    <span class="font-semibold text-orange-500 hover:text-orange-700">View Project Gallery &rarr;</span>
+                </div>
+                
+                <!-- Location Card 3 -->
+                <div class="location-card bg-white p-6 rounded-xl shadow-lg border border-gray-100 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer" data-project-id="proj3">
+                    <img src="https://placehold.co/600x400/10b981/ffffff?text=Greenwood+Estates" alt="Greenwood Estates" class="w-full h-48 object-cover rounded-lg mb-4">
+                    <h4 class="font-bold text-xl mb-2 text-emerald-600">Greenwood Estates</h4>
+                    <p class="text-gray-600 text-sm mb-4">A 50-unit residential development focusing on sustainable building practices and custom homes.</p>
+                    <span class="font-semibold text-emerald-500 hover:text-emerald-700">View Project Gallery &rarr;</span>
+                </div>
+            </div>
+        </section> <!-- End Locations -->
+
+        <!-- === ABOUT US SECTION === -->
+        <section id="about" class="py-16 md:py-24 mt-16 md:mt-24 gsap-reveal">
+            <div class="grid md:grid-cols-2 gap-12 items-center">
+                <div>
+                    <h2 class="text-3xl md:text-4xl font-bold mb-6">Our Story: Built on Trust</h2>
+                    <p class="text-lg text-gray-600 mb-4">
+                        Founded in 2005, BuildPure began as a small construction firm with a big vision: to deliver uncompromising quality. We saw a need for a contractor that didn't just build, but built relationships.
+                    </p>
+                    <p class="text-gray-600 mb-4">
+                        In 2012, we expanded our expertise to include advanced water purification, recognizing that a healthy building starts with healthy water.
+                    </p>
+                    <p class="text-gray-600 mb-6">
+                        Today, we are a leading provider of integrated construction and water solutions, but our core mission remains the same: to build with integrity and deliver purity in every drop.
+                    </p>
+                    <a href="#contact" class="bg-blue-600 text-white px-6 py-3 rounded-full font-semibold hover:bg-blue-700 transition duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+                        Work With Us
+                    </a>
+                </div>
+                <div>
+                    <img src="https://placehold.co/600x500/dbeafe/1d4ed8?text=Our+Team" alt="The BuildPure Team" class="rounded-2xl shadow-xl w-full h-auto">
+                </div>
+            </div>
+        </section> <!-- End About Us -->
+
+        <!-- === CONTACT SECTION === -->
+        <section id="contact" class="py-16 md:py-24 mt-16 md:mt-24 gsap-reveal">
+            <h2 class="text-3xl md:text-4xl font-bold text-center mb-4">Get in Touch</h2>
+            <p class="text-lg text-gray-600 text-center max-w-2xl mx-auto mb-12">Ready to start your next project? We're here to help. Fill out the form below and one of our experts will contact you shortly.</p>
+            
+            <form class="max-w-2xl mx-auto bg-white p-8 md:p-10 rounded-2xl shadow-xl border border-gray-100">
+                <div class="mb-5">
+                    <label for="name" class="block mb-2 font-medium text-gray-700">Full Name</label>
+                    <input type="text" id="name" name="name" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="John Doe">
+                </div>
+                <div class="mb-5">
+                    <label for="email" class="block mb-2 font-medium text-gray-700">Email Address</label>
+                    <input type="email" id="email" name="email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="you@example.com">
+                </div>
+                <div class="mb-5">
+                    <label for="service" class="block mb-2 font-medium text-gray-700">I'm interested in...</label>
+                    <select id="service" name="service" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                        <option>Please select a service</option>
+                        <option>Construction</option>
+                        <option>Water Purification</option>
+                        <option>Both</option>
+                    </select>
+                </div>
+                <div class="mb-8">
+                    <label for="message" class="block mb-2 font-medium text-gray-700">Message</label>
+                    <textarea id="message" name="message" rows="5" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Tell us about your project..."></textarea>
+                </div>
+                <div class="text-center">
+                    <button type="submit" class="w-full md:w-auto bg-orange-500 text-white px-10 py-3 rounded-full font-bold text-lg hover:bg-orange-600 transition duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+                        Send Message
+                    </button>
+                </div>
+            </form>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-gray-300 mt-16">
+        <div class="container mx-auto px-6 py-12 text-center">
+            <a href="#" class="text-3xl font-extrabold text-white">
+                Build<span class="text-orange-400">Pure</span>
+            </a>
+            <p class="mt-4 mb-8 max-w-lg mx-auto">Building stronger foundations and providing purer water for a better tomorrow.</p>
+            <div class="flex justify-center space-x-6">
+                <!-- Social Icons -->
+                <a href="#" class="text-gray-400 hover:text-white transition duration-300">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clip-rule="evenodd" /></svg>
+                </a>
+                <a href="#" class="text-gray-400 hover:text-white transition duration-300">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84" /></svg>
+                </a>
+                <a href="#" class="text-gray-400 hover:text-white transition duration-300">
+                    <!-- Placeholder icon -->
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10s10-4.477 10-10S17.523 2 12 2m4.207 14.207a.75.75 0 0 1-1.06 1.06L12 13.06l-3.147 3.147a.75.75 0 1 1-1.06-1.06L10.94 12 7.793 8.853a.75.75 0 0 1 1.06-1.06L12 10.94l3.147-3.147a.75.75 0 0 1 1.06 1.06L13.06 12l3.147 3.147z" clip-rule="evenodd" /></svg>
+                </a>
+            </div>
+            <p class="mt-8 text-sm text-gray-500">&copy; 2025 BuildPure Solutions. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- === MODALS (POPUPS) === -->
+
+    <!-- Location Project Gallery Modal -->
+    <div id="location-modal" class="modal">
+        <div class="modal-content max-w-5xl w-full">
+            <div class="modal-close" data-close-modal="location-modal">
+                <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </div>
+            <h3 id="location-modal-title" class="text-2xl font-bold mb-6">Project Gallery</h3>
+            <div id="location-modal-gallery" class="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-[70vh] overflow-y-auto pr-2">
+                <!-- Images will be injected here by JS -->
+            </div>
+        </div>
+    </div> <!-- End Location Modal -->
+
+    <!-- === Single Image Modal (NOW A SLIDER) === -->
+    <div id="image-modal" class="modal">
+        <div class="modal-content max-w-4xl w-full p-2 bg-white rounded-lg shadow-xl relative">
+            
+            <!-- Close Button -->
+            <div class="modal-close" data-close-modal="image-modal" style="top: -1rem; right: -1rem; background-color: white; border: 2px solid #e5e7eb; z-index: 120;">
+                <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </div>
+            
+            <!-- Image Display -->
+            <img id="modal-image-src" src="" alt="Project Gallery Image" class="w-full h-auto rounded-lg max-h-[85vh] object-contain">
+            
+            <!-- Prev Button -->
+            <button id="slider-prev" class="slider-btn left-0">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+            </button>
+            
+            <!-- Next Button -->
+            <button id="slider-next" class="slider-btn right-0">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+            </button>
+            
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            // --- Project Location Data ---
+            // In a real site, this would come from a database
+            const projectData = {
+                'proj1': {
+                    name: 'City Center Plaza',
+                    images: [
+                        'https://placehold.co/800x600/2563eb/ffffff?text=Plaza+View+1',
+                        'https://placehold.co/800x600/2563eb/ffffff?text=Plaza+Foundation',
+                        'https://placehold.co/800x600/2563eb/ffffff?text=Plaza+Interior+Fit-out'
+                    ]
+                },
+                'proj2': {
+                    name: 'AquaFresh Industrial Plant',
+                    images: [
+                        'https://placehold.co/800x600/f97316/ffffff?text=AquaFresh+Tanks',
+                        'https://placehold.co/800x600/f97316/ffffff?text=Control+System',
+                        'https://placehold.co/800x600/f97316/ffffff?text=Filtration+Unit',
+                        'https://placehold.co/800x600/f97316/ffffff?text=Final+Testing'
+                    ]
+                },
+                'proj3': {
+                    name: 'Greenwood Estates',
+                    images: [
+                        'https://placehold.co/800x600/10b981/ffffff?text=Custom+Home+Exterior', // <-- FIXED THIS LINE
+                        'https://placehold.co/800x600/10b981/ffffff?text=Kitchen+Renovation',
+                    ]
+                }
+            };
+            
+            // --- GSAP Animations ---
+            gsap.registerPlugin(ScrollTrigger);
+            
+            // 1. Hero Section Animation
+            const heroTl = gsap.timeline({ defaults: { duration: 0.8, ease: 'power3.out' } });
+            heroTl
+                .to('.hero-line-1', { opacity: 1, y: 0, delay: 0.2 })
+                .to('.hero-line-2', { opacity: 1, y: 0 }, '-=0.6')
+                .to('.hero-p', { opacity: 1, y: 0 }, '-=0.6')
+                .to('.hero-btn', { opacity: 1, y: 0 }, '-=0.6');
+
+            // 2. ScrollTrigger Animations
+            const revealElements = document.querySelectorAll('.gsap-reveal');
+            revealElements.forEach((el) => {
+                gsap.fromTo(el, 
+                    { opacity: 0, y: 50 }, 
+                    { 
+                        opacity: 1, 
+                        y: 0, 
+                        duration: 1, 
+                        ease: 'power3.out',
+                        scrollTrigger: {
+                            trigger: el,
+                            start: 'top 85%', 
+                            toggleActions: 'play none none none'
+                        }
+                    }
+                );
+            });
+            
+            // --- Modal (Popup) Functionality ---
+            const allModals = document.querySelectorAll('.modal');
+            
+            // Function to open a modal
+            const openModal = (modalId) => {
+                const modal = document.getElementById(modalId);
+                if(modal) modal.classList.add('is-open');
+            };
+
+            // Function to close a modal
+            const closeModal = (modalId) => {
+                const modal = document.getElementById(modalId);
+                if(modal) modal.classList.remove('is-open');
+            };
+
+            // Add close listeners to all close buttons and backdrops
+            allModals.forEach(modal => {
+                // Close button
+                modal.querySelector('.modal-close').addEventListener('click', () => {
+                    closeModal(modal.id);
+                });
+                // Backdrop click
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        closeModal(modal.id);
+                    }
+                });
+            });
+            
+            // === 1. Single Image Modal / Slider Logic ===
+            const mainGallery = document.getElementById('main-gallery');
+            const modalImage = document.getElementById('modal-image-src');
+            const sliderPrev = document.getElementById('slider-prev');
+            const sliderNext = document.getElementById('slider-next');
+            
+            let sliderImageSources = []; // Array to store the current slider's image sources
+            let currentSliderIndex = 0; // Index of the currently displayed image
+
+            // Function to update the slider image
+            const updateSliderImage = (index) => {
+                // Wrap around if index is out of bounds
+                if (index < 0) {
+                    index = sliderImageSources.length - 1;
+                } else if (index >= sliderImageSources.length) {
+                    index = 0;
+                }
+                currentSliderIndex = index;
+                modalImage.src = sliderImageSources[currentSliderIndex];
+            };
+
+            // REUSABLE Function to open the slider
+            const openSliderModal = (imagesArray, clickedIndex) => {
+                sliderImageSources = imagesArray; // Set the source array for the slider
+                updateSliderImage(clickedIndex); // Show the clicked image
+                openModal('image-modal'); // Open the slider modal
+            };
+
+            if (mainGallery && modalImage && sliderPrev && sliderNext) {
+                
+                // 1. Build the MAIN gallery's image array on load
+                const mainGallerySources = [];
+                const allGalleryImages = mainGallery.querySelectorAll('.gallery-item-main .gallery-image');
+                allGalleryImages.forEach(img => {
+                    mainGallerySources.push(img.src);
+                });
+
+                // 2. Add click listener to the main gallery
+                mainGallery.addEventListener('click', (e) => {
+                    const clickedItem = e.target.closest('.gallery-item-main');
+                    if (!clickedItem) return;
+                    
+                    const clickedImage = clickedItem.querySelector('.gallery-image');
+                    if (!clickedImage) return;
+
+                    // Find the index of the clicked image
+                    const clickedSrc = clickedImage.src;
+                    const clickedIndex = mainGallerySources.indexOf(clickedSrc);
+                    
+                    if (clickedIndex !== -1) {
+                        // Open the slider using the main gallery's images
+                        openSliderModal(mainGallerySources, clickedIndex);
+                    }
+                });
+
+                // 3. Add click listener for PREV button
+                sliderPrev.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent modal from closing
+                    updateSliderImage(currentSliderIndex - 1);
+                });
+
+                // 4. Add click listener for NEXT button
+                sliderNext.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent modal from closing
+                    updateSliderImage(currentSliderIndex + 1);
+                });
+            }
+
+            // 2. Location Gallery Modal Logic
+            const locationsGrid = document.getElementById('locations-grid');
+            const locationModalTitle = document.getElementById('location-modal-title');
+            const locationModalGallery = document.getElementById('location-modal-gallery');
+            
+            if (locationsGrid && locationModalTitle && locationModalGallery) {
+                locationsGrid.addEventListener('click', (e) => {
+                    const clickedLocation = e.target.closest('.location-card');
+                    if (!clickedLocation) return;
+                    
+                    const projectId = clickedLocation.dataset.projectId;
+                    const project = projectData[projectId];
+                    
+                    if (project) {
+                        // Update modal title
+                        locationModalTitle.textContent = `Project: ${project.name}`;
+                        
+                        // Clear and populate gallery
+                        locationModalGallery.innerHTML = ''; // Clear old images
+                        // FIXED: Removed the stray '+' and '-' diff markers
+                        project.images.forEach((imgSrc, index) => {
+                            const img = document.createElement('img');
+                            img.src = imgSrc;
+                            img.alt = `${project.name} image`;
+                            img.className = 'w-full h-auto object-cover rounded-lg shadow-md cursor-pointer hover:opacity-80 transition-opacity';
+
+                            // ADDED: Click listener for each image in the location grid
+                            img.addEventListener('click', () => {
+                                // 1. Close this modal (location-modal)
+                                closeModal('location-modal');
+                                // 2. Open the slider modal with this project's images
+                                openSliderModal(project.images, index);
+                            });
+
+                            locationModalGallery.appendChild(img);
+                        });
+                        
+                        // Open the modal
+                        openModal('location-modal');
+                    }
+                });
+            }
+            
+        });
+        // REMOVED: Stray `img.src = imgSrc;` line from here
+    </script>
+</body>
+</html>
+
+
+

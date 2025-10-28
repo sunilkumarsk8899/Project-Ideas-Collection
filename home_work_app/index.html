@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>School Portal - Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .form-container { display: none; }
+        .form-container.active { display: block; }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+    <div class="w-full max-w-md bg-white p-8 rounded-lg shadow-md">
+        
+        <div class="text-center mb-6">
+            <h1 class="text-3xl font-bold text-blue-600">School Portal</h1>
+            <p class="text-gray-500">Please log in or register to continue.</p>
+        </div>
+
+        <!-- Toggles -->
+        <div class="flex mb-4 border-b">
+            <button id="show-login" class="flex-1 py-2 font-semibold text-gray-700 border-b-2 border-blue-500">Login</button>
+            <button id="show-register" class="flex-1 py-2 font-semibold text-gray-500 border-transparent">Register</button>
+        </div>
+
+        <!-- Message Box -->
+        <div id="message-box" class="p-3 rounded-lg mb-4 text-center text-sm" style="display: none;"></div>
+
+        <!-- Login Form -->
+        <form id="login-form" class="form-container active space-y-4">
+            <input type="hidden" name="action" value="login">
+            <div>
+                <label for="login-email" class="block text-sm font-medium text-gray-700">Email</label>
+                <input type="email" id="login-email" name="email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required>
+            </div>
+            <div>
+                <label for="login-password" class="block text-sm font-medium text-gray-700">Password</label>
+                <input type="password" id="login-password" name="password" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required>
+            </div>
+            <button type="submit" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">Login</button>
+        </form>
+
+        <!-- Register Form -->
+        <form id="register-form" class="form-container space-y-4">
+            <input type="hidden" name="action" value="register">
+            <div>
+                <label for="register-email" class="block text-sm font-medium text-gray-700">Email</label>
+                <input type="email" id="register-email" name="email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required>
+            </div>
+            <div>
+                <label for="register-password" class="block text-sm font-medium text-gray-700">Password</label>
+                <input type="password" id="register-password" name="password" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Role</label>
+                <select name="role" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required>
+                    <option value="student">I am a Student / Parent</option>
+                    <option value="teacher">I am a Teacher</option>
+                </select>
+            </div>
+            <button type="submit" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg">Register</button>
+        </form>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const showLoginBtn = document.getElementById('show-login');
+            const showRegisterBtn = document.getElementById('show-register');
+            const loginForm = document.getElementById('login-form');
+            const registerForm = document.getElementById('register-form');
+            const messageBox = document.getElementById('message-box');
+
+            function showMessage(message, isError = false) {
+                messageBox.textContent = message;
+                messageBox.className = isError 
+                    ? 'p-3 rounded-lg mb-4 text-center text-sm bg-red-100 text-red-700' 
+                    : 'p-3 rounded-lg mb-4 text-center text-sm bg-green-100 text-green-700';
+                messageBox.style.display = 'block';
+            }
+
+            showLoginBtn.addEventListener('click', () => {
+                loginForm.classList.add('active');
+                registerForm.classList.remove('active');
+                showLoginBtn.classList.add('border-blue-500', 'text-gray-700');
+                showLoginBtn.classList.remove('border-transparent', 'text-gray-500');
+                showRegisterBtn.classList.add('border-transparent', 'text-gray-500');
+                showRegisterBtn.classList.remove('border-blue-500', 'text-gray-700');
+            });
+
+            showRegisterBtn.addEventListener('click', () => {
+                loginForm.classList.remove('active');
+                registerForm.classList.add('active');
+                showRegisterBtn.classList.add('border-blue-500', 'text-gray-700');
+                showRegisterBtn.classList.remove('border-transparent', 'text-gray-500');
+                showLoginBtn.classList.add('border-transparent', 'text-gray-500');
+                showLoginBtn.classList.remove('border-blue-500', 'text-gray-700');
+            });
+
+            // Handle Registration
+            registerForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const formData = new FormData(registerForm);
+
+                if (typeof $ === 'undefined') {
+                    showMessage('jQuery is required for this action.', true);
+                    return;
+                }
+
+                $.ajax({
+                    url: './auth.php',
+                    method: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    dataType: 'json'
+                }).done(function(result) {
+                    if (result && result.success) {
+                        showMessage(result.message || 'Registration successful.', false);
+                        // Switch to login form
+                        showLoginBtn.click();
+                        loginForm.querySelector('#login-email').value = formData.get('email') || '';
+                    } else {
+                        showMessage((result && result.message) || 'Registration failed.', true);
+                    }
+                }).fail(function() {
+                    showMessage('An error occurred. Please try again.', true);
+                });
+            });
+
+            // Handle Login
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const formData = new FormData(loginForm);
+
+                try {
+                    const response = await fetch('./auth.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        // Redirect to the main portal page
+                        window.location.href = 'portal.html';
+                    } else {
+                        showMessage(result.message, true);
+                    }
+                } catch (error) {
+                    showMessage('An error occurred. Please try again.', true);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+
