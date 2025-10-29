@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tier List Maker</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Inter font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Custom styles */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Style for the tier label */
+        .tier-label {
+            /* Ensures text is centered and readable */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.875rem; /* 3xl */
+            color: white;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+            /* Prevent dragging the label text */
+            user-select: none; 
+        }
+
+        /* Style for draggable items */
+        .draggable-item {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 0.375rem; /* rounded-md */
+            cursor: grab;
+            transition: all 0.2s ease-in-out;
+            border: 2px solid transparent;
+        }
+
+        .draggable-item:hover {
+            border-color: #3B82F6; /* blue-500 */
+        }
+
+        /* Style for item being dragged */
+        .dragging {
+            opacity: 0.5;
+            transform: scale(0.95);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Style for the dropzone being hovered over */
+        .drag-over {
+            background-color: #374151; /* gray-700 */
+            outline: 2px dashed #4B5563; /* gray-600 */
+            outline-offset: -4px;
+        }
+
+        /* Hide the default file input */
+        input[type="file"].hidden-input {
+            width: 0.1px;
+            height: 0.1px;
+            opacity: 0;
+            overflow: hidden;
+            position: absolute;
+            z-index: -1;
+        }
+        
+        /* Style the label for the file input like a button */
+        .file-input-label {
+            display: inline-block;
+            padding: 0.75rem 1.25rem;
+            background-color: #4F46E5; /* indigo-600 */
+            color: white;
+            font-weight: 500;
+            border-radius: 0.375rem; /* rounded-md */
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .file-input-label:hover {
+            background-color: #4338CA; /* indigo-700 */
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white p-4 md:p-8 min-h-screen">
+
+    <div class="container mx-auto max-w-7xl">
+        <h1 class="text-4xl font-bold text-center mb-8">Tier List Maker</h1>
+
+        <!-- Controls Section -->
+        <div class="bg-gray-800 p-4 rounded-lg shadow-lg mb-6 flex flex-col md:flex-row gap-4 justify-between items-center">
+            
+            <!-- Tier Adder -->
+            <div class="flex flex-col sm:flex-row gap-3 items-center w-full md:w-auto">
+                <span class="font-semibold">Add New Tier:</span>
+                <input type="text" id="tier-name-input" placeholder="Tier Name (e.g., S)" class="bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <input type="color" id="tier-color-input" value="#EF4444" class="h-10 w-16 bg-gray-700 rounded-md cursor-pointer border border-gray-600">
+                <button id="add-tier-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition-colors w-full sm:w-auto">
+                    Add Tier
+                </button>
+            </div>
+
+            <!-- Item Adder -->
+            <div class="w-full md:w-auto">
+                <input type="file" id="add-items-input" multiple accept="image/*" class="hidden-input">
+                <label for="add-items-input" class="file-input-label text-center w-full md:w-auto">
+                    + Add Images to Bank
+                </label>
+            </div>
+        </div>
+
+        <!-- Tier List Container -->
+        <div id="tier-list-container" class="space-y-1">
+            <!-- Tiers will be dynamically added here -->
+        </div>
+
+        <!-- Item Bank Container -->
+        <div class="mt-10">
+            <h2 class="text-3xl font-semibold mb-4 border-b border-gray-700 pb-2">Item Bank</h2>
+            <div id="item-bank" class="dropzone bg-gray-800 p-4 rounded-lg min-h-[160px] flex flex-wrap gap-3 shadow-inner">
+                <p id="item-bank-placeholder" class="text-gray-400 self-center mx-auto">Upload images to see them here. You can then drag them to your tiers!</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Element References ---
+            const tierListContainer = document.getElementById('tier-list-container');
+            const itemBank = document.getElementById('item-bank');
+            const addTierBtn = document.getElementById('add-tier-btn');
+            const tierNameInput = document.getElementById('tier-name-input');
+            const tierColorInput = document.getElementById('tier-color-input');
+            const addItemInput = document.getElementById('add-items-input');
+            const itemBankPlaceholder = document.getElementById('item-bank-placeholder');
+
+            // --- State ---
+            let draggedItem = null; // Holds the element being dragged
+
+            // --- Functions ---
+
+            /**
+             * Creates and adds a new tier row to the list.
+             * @param {string} name - The name of the tier (e.g., "S").
+             * @param {string} color - The hex color code for the label.
+             */
+            function createTier(name, color) {
+                const tierRow = document.createElement('div');
+                tierRow.className = 'tier-row flex min-h-[116px] bg-gray-800 border-b border-gray-700';
+
+                // Create the tier label
+                const tierLabel = document.createElement('div');
+                tierLabel.className = 'tier-label w-20 md:w-28';
+                tierLabel.textContent = name;
+                tierLabel.style.backgroundColor = color;
+
+                // Create the dropzone for items
+                const tierDropzone = document.createElement('div');
+                tierDropzone.className = 'tier-dropzone dropzone flex-1 p-2 flex flex-wrap items-start gap-3 bg-gray-800/50';
+
+                // Add drag-and-drop listeners to the new dropzone
+                addDropzoneListeners(tierDropzone);
+
+                // Assemble and append the new tier
+                tierRow.appendChild(tierLabel);
+                tierRow.appendChild(tierDropzone);
+                tierListContainer.appendChild(tierRow);
+            }
+
+            /**
+             * Adds drag-and-drop event listeners to a dropzone element.
+             * @param {HTMLElement} zone - The element to make a dropzone.
+             */
+            function addDropzoneListeners(zone) {
+                zone.addEventListener('dragover', handleDragOver);
+                zone.addEventListener('dragleave', handleDragLeave);
+                zone.addEventListener('drop', handleDrop);
+            }
+
+            /**
+             * Adds drag event listeners to a draggable item.
+             * @param {HTMLElement} item - The item to make draggable.
+             */
+            function addDragListeners(item) {
+                item.addEventListener('dragstart', handleDragStart);
+                item.addEventListener('dragend', handleDragEnd);
+            }
+
+            /**
+             * Handles the file upload event to add new items to the bank.
+             * @param {Event} e - The file input change event.
+             */
+            function handleItemUpload(e) {
+                const files = e.target.files;
+                if (files.length === 0) return;
+
+                // Hide the placeholder text
+                if (itemBankPlaceholder) {
+                    itemBankPlaceholder.style.display = 'none';
+                }
+
+                for (const file of files) {
+                    if (file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        
+                        reader.onload = (event) => {
+                            const img = document.createElement('img');
+                            img.src = event.target.result;
+                            img.className = 'draggable-item';
+                            img.draggable = true;
+                            // Generate a unique ID for drag-and-drop
+                            img.id = 'item-' + Date.now() + Math.random().toString(36).substring(2, 9);
+
+                            // Add drag listeners to the new item
+                            addDragListeners(img);
+                            
+                            // Add the new item to the item bank
+                            itemBank.appendChild(img);
+                        };
+                        
+                        reader.readAsDataURL(file);
+                    }
+                }
+            }
+
+            // --- Drag-and-Drop Event Handlers ---
+
+            function handleDragStart(e) {
+                draggedItem = e.target; // Store the item being dragged
+                e.dataTransfer.setData('text/plain', e.target.id);
+                // Add styling to the dragged item
+                setTimeout(() => e.target.classList.add('dragging'), 0);
+            }
+
+            function handleDragEnd(e) {
+                // Remove dragging styles
+                e.target.classList.remove('dragging');
+                draggedItem = null;
+            }
+
+            function handleDragOver(e) {
+                e.preventDefault(); // This is crucial to allow dropping
+                
+                // Find the closest dropzone (in case of nested elements)
+                const dropzone = e.target.closest('.dropzone');
+                if (dropzone) {
+                    dropzone.classList.add('drag-over');
+                }
+            }
+
+            function handleDragLeave(e) {
+                // Find the closest dropzone
+                const dropzone = e.target.closest('.dropzone');
+                if (dropzone) {
+                    dropzone.classList.remove('drag-over');
+                }
+            }
+
+            function handleDrop(e) {
+                e.preventDefault();
+                const dropzone = e.target.closest('.dropzone');
+
+                if (dropzone && draggedItem) {
+                    dropzone.classList.remove('drag-over');
+                    
+                    // Append the dragged item to the new dropzone
+                    dropzone.appendChild(draggedItem);
+                    
+                    // Check if the item bank is now empty
+                    if (itemBank.children.length === 0 || (itemBank.children.length === 1 && itemBank.children[0] === itemBankPlaceholder)) {
+                        if (itemBankPlaceholder) itemBankPlaceholder.style.display = 'block';
+                    } else {
+                         if (itemBankPlaceholder) itemBankPlaceholder.style.display = 'none';
+                    }
+                }
+            }
+
+            // --- Initial Setup ---
+
+            // 1. Create default tiers based on the screenshot
+            const defaultTiers = [
+                { name: 'S', color: '#ff7f7f' },
+                { name: 'A', color: '#ffbf7f' },
+                { name: 'B', color: '#ffff7f' },
+                { name: 'C', color: '#7fff7f' }, // Added C, as it's standard
+                { name: 'D', color: '#7fbfff' }  // Colors adjusted for better visibility
+            ];
+            
+            // The screenshot had slightly different colors/tiers, let's match it more closely
+            const screenshotTiers = [
+                 { name: 'S', color: '#F87171' }, // red-400
+                 { name: 'A', color: '#F97316' }, // orange-600
+                 { name: 'B', color: '#22C55E' }, // green-500
+                 { name: 'D', color: '#EAB308' }  // yellow-500
+            ];
+
+            screenshotTiers.forEach(tier => createTier(tier.name, tier.color));
+
+            // 2. Add event listener for the "Add Tier" button
+            addTierBtn.addEventListener('click', () => {
+                const name = tierNameInput.value.trim() || 'New';
+                const color = tierColorInput.value;
+                createTier(name, color);
+                // Reset input
+                tierNameInput.value = '';
+            });
+
+            // 3. Add event listener for the file input
+            addItemInput.addEventListener('change', handleItemUpload);
+            
+            // 4. Make the initial item bank a dropzone
+            addDropzoneListeners(itemBank);
+        });
+    </script>
+</body>
+</html>

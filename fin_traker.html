@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Expense Tracker</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+    <!-- Google Font: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Base styling */
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Glassmorphism class */
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1.5rem; /* 24px */
+        }
+        
+        .glass-dark {
+             background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.1);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.6); /* indigo-500 */
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(99, 102, 241, 0.8); /* indigo-400 */
+        }
+
+        /* Active nav item */
+        .nav-item.active {
+            background-color: rgba(99, 102, 241, 1); /* indigo-500 */
+            color: white;
+            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
+        }
+        
+        .nav-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .nav-item.active:hover {
+             background-color: rgba(99, 102, 241, 0.9);
+        }
+
+        /* Modal fade-in */
+        .modal {
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+        .modal-content {
+             transition: transform 0.25s ease;
+        }
+
+        /* Toast notifications */
+        @keyframes toast-in {
+            from {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        @keyframes toast-out {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+        }
+
+        .toast-enter {
+            animation: toast-in 0.3s ease forwards;
+        }
+        .toast-exit {
+            animation: toast-out 0.3s ease forwards;
+        }
+        
+        /* Confetti Canvas */
+        #confetti-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1000;
+            display: none; /* Hidden by default */
+        }
+    </style>
+</head>
+
+<body class="bg-gray-900 text-gray-200">
+    <!-- Main Container -->
+    <div class="flex h-screen overflow-hidden">
+
+        <!-- Desktop Sidebar -->
+        <nav class="hidden md:flex md:flex-col md:w-64 glass m-4 p-4 space-y-2">
+            <div class="flex items-center space-x-2 px-2 mb-6">
+                <i data-lucide="wallet" class="text-indigo-400"></i>
+                <span class="text-xl font-bold text-white">FinTrack</span>
+            </div>
+            <a href="#" data-page="dashboard" class="nav-item active flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="#" data-page="setup" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200">
+                <i data-lucide="settings" class="w-5 h-5"></i>
+                <span>Setup & Add</span>
+            </a>
+            <a href="#" data-page="plan" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200">
+                <i data-lucide="piggy-bank" class="w-5 h-5"></i>
+                <span>Financial Plan</span>
+            </a>
+            <a href="#" data-page="history" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200">
+                <i data-lucide="history" class="w-5 h-5"></i>
+                <span>History</span>
+            </a>
+            <a href="#" data-page="analytics" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200">
+                <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+                <span>Analytics</span>
+            </a>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto p-4 md:p-8">
+            <div class="max-w-7xl mx-auto">
+                
+                <!-- Page: Dashboard -->
+                <div id="page-dashboard" class="page-content">
+                    <h1 class="text-3xl font-bold text-white mb-6">Dashboard</h1>
+                    
+                    <!-- Summary Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <div class="glass p-6">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-sm text-gray-400">Total Income</span>
+                                <i data-lucide="trending-up" class="text-green-400"></i>
+                            </div>
+                            <span id="dash-income" class="text-3xl font-bold text-white">$0.00</span>
+                        </div>
+                        <div class="glass p-6">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-sm text-gray-400">Total Spent</span>
+                                <i data-lucide="trending-down" class="text-red-400"></i>
+                            </div>
+                            <span id="dash-spent" class="text-3xl font-bold text-white">$0.00</span>
+                        </div>
+                        <div class="glass p-6">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-sm text-gray-400">Remaining Balance</span>
+                                <i data-lucide="scale" class="text-indigo-400"></i>
+                            </div>
+                            <span id="dash-remaining" class="text-3xl font-bold text-white">$0.00</span>
+                        </div>
+                    </div>
+
+                    <!-- Today's Goal Progress -->
+                    <div class="glass p-6 mb-8">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-lg font-semibold text-white">Today's Goal</span>
+                            <span id="dash-goal-text" class="text-sm font-medium text-gray-300">$0.00 / $0.00</span>
+                        </div>
+                        <div class="w-full bg-gray-700 rounded-full h-2.5">
+                            <div id="dash-goal-progress" class="bg-indigo-500 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                        <!-- Recent Transactions -->
+                        <div class="glass p-6">
+                            <h2 class="text-lg font-semibold text-white mb-4">Recent Transactions</h2>
+                            <div id="dashboard-recent-list" class="space-y-3">
+                                <!-- JS will populate this -->
+                                <p class="text-center text-gray-400 py-4">No recent transactions.</p>
+                            </div>
+                        </div>
+
+                        <!-- Financial Plan Summary -->
+                        <div class="glass p-6">
+                            <h2 class="text-lg font-semibold text-white mb-4">Plan Summary</h2>
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-gray-400">Planned Savings:</span>
+                                    <span id="dash-plan-savings" class="font-semibold text-white">$0.00</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-gray-400">Emergency Fund:</span>
+                                    <span id="dash-plan-emergency" class="font-semibold text-white">$0.00</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-gray-400">Planned Investments:</span>
+                                    <span id="dash-plan-investments" class="font-semibold text-white">$0.00</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-gray-400">Planned Expenses:</span>
+                                    <span id="dash-plan-expenses" class="font-semibold text-white">$0.00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Celebrate Button -->
+                    <button id="celebrate-btn" class="flex items-center justify-center space-x-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-xl font-semibold shadow-lg transition-all duration-200 hover:scale-105 active:scale-100">
+                        <i data-lucide="party-popper"></i>
+                        <span>Celebrate Good Budgeting!</span>
+                    </button>
+                </div>
+
+                <!-- Page: Setup & Add -->
+                <div id="page-setup" class="page-content hidden">
+                    <h1 class="text-3xl font-bold text-white mb-6">Setup & Add Expense</h1>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Card: Set Income -->
+                        <div class="glass p-6 flex flex-col justify-between">
+                            <div>
+                                <h2 class="text-lg font-semibold text-white mb-2">Monthly Income</h2>
+                                <p class="text-gray-400 text-sm mb-4">Set your total monthly income to track against.</p>
+                                <div class="text-2xl font-bold text-white mb-4" id="setup-income-display">$0.00</div>
+                            </div>
+                            <button id="open-income-modal" class="w-full bg-indigo-500 text-white px-4 py-3 rounded-xl font-semibold transition-all duration-200 hover:bg-indigo-600 active:scale-95">
+                                Set Income
+                            </button>
+                        </div>
+
+                        <!-- Card: Set Daily Goal -->
+                        <div class="glass p-6 flex flex-col justify-between">
+                            <div>
+                                <h2 class="text-lg font-semibold text-white mb-2">Daily Expense Goal</h2>
+                                <p class="text-gray-400 text-sm mb-4">Set a daily spending limit to stay on track.</p>
+                                <div class="text-2xl font-bold text-white mb-4" id="setup-goal-display">$0.00</div>
+                            </div>
+                            <button id="open-goal-modal" class="w-full bg-teal-500 text-white px-4 py-3 rounded-xl font-semibold transition-all duration-200 hover:bg-teal-600 active:scale-95">
+                                Set Daily Goal
+                            </button>
+                        </div>
+                        
+                        <!-- Card: Add Expense -->
+                        <div class="glass p-6 flex flex-col justify-between bg-indigo-600/30 border-indigo-500">
+                            <div>
+                                <h2 class="text-lg font-semibold text-white mb-2">Add New Expense</h2>
+                                <p class="text-gray-300 text-sm mb-4">Log a new transaction to update your balance.</p>
+                                <div class="text-center my-4">
+                                     <i data-lucide="plus-circle" class="w-16 h-16 text-indigo-400 mx-auto"></i>
+                                </div>
+                            </div>
+                            <button id="open-expense-modal" class="w-full bg-indigo-500 text-white px-4 py-3 rounded-xl font-semibold transition-all duration-200 hover:bg-indigo-600 active:scale-95">
+                                Add Expense
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Reset Month Card -->
+                    <div class="mt-8">
+                        <h2 class="text-2xl font-bold text-white mb-4">Monthly Actions</h2>
+                        <div class="glass p-6 max-w-md">
+                            <h3 class="text-lg font-semibold text-white mb-2">Start a New Month</h3>
+                            <p class="text-gray-400 text-sm mb-4">This will clear all your current transactions and reset your tracking for a new month.</p>
+                            <button id="reset-month-btn" class="w-full bg-red-600 text-white px-4 py-3 rounded-xl font-semibold transition-all duration-200 hover:bg-red-700 active:scale-95">
+                                Reset Month
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Page: Financial Plan -->
+                <div id="page-plan" class="page-content hidden">
+                    <h1 class="text-3xl font-bold text-white mb-6">Monthly Financial Plan</h1>
+                    <p class="text-gray-400 mb-6 max-w-2xl">Manually allocate parts of your income to different financial goals. This is for planning purposes and doesn't affect your main balance.</p>
+                    
+                    <div class="glass p-6 md:p-8 max-w-2xl mx-auto">
+                        <!-- Tab Headers -->
+                        <div class="flex border-b border-white/10 mb-6">
+                            <button class="plan-tab active-tab flex-1 py-3 px-2 text-center font-semibold text-indigo-400 border-b-2 border-indigo-400 transition-all duration-200" data-tab="plan-expenses">
+                                Expenses
+                            </button>
+                            <button class="plan-tab flex-1 py-3 px-2 text-center font-medium text-gray-400 hover:text-white transition-all duration-200" data-tab="plan-savings">
+                                Savings
+                            </button>
+                            <button class="plan-tab flex-1 py-3 px-2 text-center font-medium text-gray-400 hover:text-white transition-all duration-200" data-tab="plan-emergency">
+                                Emergency
+                            </button>
+                            <button class="plan-tab flex-1 py-3 px-2 text-center font-medium text-gray-400 hover:text-white transition-all duration-200" data-tab="plan-investments">
+                                Investments
+                            </button>
+                        </div>
+                        
+                        <!-- Tab Content -->
+                        <form id="plan-form">
+                            <div id="plan-expenses" class="plan-tab-content space-y-4">
+                                <label class="block">
+                                    <span class="text-gray-400">Planned Expenses ($)</span>
+                                    <input type="number" id="plan-input-expenses" class="form-input" placeholder="e.g., 1500" step="0.01">
+                                </label>
+                            </div>
+                            <div id="plan-savings" class="plan-tab-content space-y-4 hidden">
+                                <label class="block">
+                                    <span class="text-gray-400">Planned Savings ($)</span>
+                                    <input type="number" id="plan-input-savings" class="form-input" placeholder="e.g., 500" step="0.01">
+                                </label>
+                            </div>
+                            <div id="plan-emergency" class="plan-tab-content space-y-4 hidden">
+                                <label class="block">
+                                    <span class="text-gray-400">Emergency Fund ($)</span>
+                                    <input type="number" id="plan-input-emergency" class="form-input" placeholder="e.g., 200" step="0.01">
+                                </label>
+                            </div>
+                            <div id="plan-investments" class="plan-tab-content space-y-4 hidden">
+                                <label class="block">
+                                    <span class="text-gray-400">Planned Investments ($)</span>
+                                    <input type="number" id="plan-input-investments" class="form-input" placeholder="e.g., 300" step="0.01">
+                                </label>
+                            </div>
+                            
+                            <button type="submit" class="w-full mt-6 bg-indigo-500 text-white px-4 py-3 rounded-xl font-semibold transition-all duration-200 hover:bg-indigo-600 active:scale-95">
+                                Save Plan
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Page: History -->
+                <div id="page-history" class="page-content hidden">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+                        <h1 class="text-3xl font-bold text-white mb-4 md:mb-0">Transaction History</h1>
+                        <button id="export-csv-btn" class="flex items-center justify-center space-x-2 bg-teal-500 text-white px-5 py-2.5 rounded-xl font-semibold transition-all duration-200 hover:bg-teal-600 active:scale-95">
+                            <i data-lucide="download"></i>
+                            <span>Export to CSV</span>
+                        </button>
+                    </div>
+
+                    <div class="glass p-4 md:p-6">
+                        <div id="history-list" class="space-y-4">
+                            <!-- JS will populate this -->
+                            <p class="text-center text-gray-400 py-8">No transactions yet.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Page: Analytics -->
+                <div id="page-analytics" class="page-content hidden">
+                    <h1 class="text-3xl font-bold text-white mb-6">Analytics</h1>
+                    
+                    <!-- Charts -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                        <div class="glass p-6 h-96">
+                            <h2 class="text-lg font-semibold text-white mb-4">Daily Spending</h2>
+                            <div class="relative h-full w-full max-h-80">
+                                <canvas id="bar-chart"></canvas>
+                            </div>
+                        </div>
+                        <div class="glass p-6 h-96">
+                            <h2 class="text-lg font-semibold text-white mb-4">Spending by Category</h2>
+                            <div class="relative h-full w-full max-h-80 flex items-center justify-center">
+                                <canvas id="pie-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+
+        <!-- Mobile Bottom Nav -->
+        <nav class="md:hidden fixed bottom-0 left-0 right-0 glass-dark p-2 flex justify-around border-t border-white/10">
+            <a href="#" data-page="dashboard" class="nav-item active flex flex-col items-center p-3 rounded-xl transition-all duration-200 w-1/5">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                <span class="text-xs mt-1">Dash</span>
+            </a>
+            <a href="#" data-page="setup" class="nav-item flex flex-col items-center p-3 rounded-xl transition-all duration-200 w-1/5">
+                <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                <span class="text-xs mt-1">Add</span>
+            </a>
+            <a href="#" data-page="plan" class="nav-item flex flex-col items-center p-3 rounded-xl transition-all duration-200 w-1/5">
+                <i data-lucide="piggy-bank" class="w-5 h-5"></i>
+                <span class="text-xs mt-1">Plan</span>
+            </a>
+            <a href="#" data-page="history" class="nav-item flex flex-col items-center p-3 rounded-xl transition-all duration-200 w-1/5">
+                <i data-lucide="history" class="w-5 h-5"></i>
+                <span class="text-xs mt-1">History</span>
+            </a>
+            <a href="#" data-page="analytics" class="nav-item flex flex-col items-center p-3 rounded-xl transition-all duration-200 w-1/5">
+                <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+                <span class="text-xs mt-1">Charts</span>
+            </a>
+        </nav>
+
+    </div> <!-- End Main Container -->
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-3 w-full max-w-xs">
+        <!-- JS will populate this -->
+    </div>
+    
+    <!-- Confetti Canvas -->
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- ======== MODALS ======== -->
+
+    <!-- Modal: Set Income -->
+    <div id="modal-add-income" class="modal hidden fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4 opacity-0 transform scale-95">
+        <div class="modal-content glass-dark p-6 md:p-8 rounded-2xl w-full max-w-md transform scale-100">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold text-white">Set Monthly Income</h2>
+                <button class="modal-close text-gray-400 hover:text-white transition-all duration-200">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <form id="form-add-income">
+                <label class="block mb-4">
+                    <span class="text-gray-400">Income Amount ($)</span>
+                    <input type="number" id="input-income" class="form-input" placeholder="e.g., 3000" step="0.01" required>
+                </label>
+                <button type="submit" class="w-full bg-indigo-500 text-white px-4 py-3 rounded-xl font-semibold transition-all duration-200 hover:bg-indigo-600 active:scale-95">
+                    Save Income
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Modal: Set Goal -->
+    <div id="modal-set-goal" class="modal hidden fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4 opacity-0 transform scale-95">
+        <div class="modal-content glass-dark p-6 md:p-8 rounded-2xl w-full max-w-md transform scale-100">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold text-white">Set Daily Goal</h2>
+                <button class="modal-close text-gray-400 hover:text-white transition-all duration-200">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <form id="form-set-goal">
+                <label class="block mb-4">
+                    <span class="text-gray-400">Daily Goal Amount ($)</span>
+                    <input type="number" id="input-goal" class="form-input" placeholder="e.g., 50" step="0.01" required>
+                </label>
+                <button type="submit" class="w-full bg-teal-500 text-white px-4 py-3 rounded-xl font-semibold transition-all duration-200 hover:bg-teal-600 active:scale-95">
+                    Set Goal
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Modal: Add Expense -->
+    <div id="modal-add-expense" class="modal hidden fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4 opacity-0 transform scale-95">
+        <div class="modal-content glass-dark p-6 md:p-8 rounded-2xl w-full max-w-md transform scale-100">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold text-white">Add New Expense</h2>
+                <button class="modal-close text-gray-400 hover:text-white transition-all duration-200">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <form id="form-add-expense" class="space-y-4">
+                <label class="block">
+                    <span class="text-gray-400">Date</span>
+                    <input type="date" id="input-expense-date" class="form-input" required>
+                </label>
+                <label class="block">
+                    <span class="text-gray-400">Amount ($)</span>
+                    <input type="number" id="input-expense-amount" class="form-input" placeholder="e.g., 25.50" step="0.01" required>
+                </label>
+                <label class="block">
+                    <span class="text-gray-400">Category</span>
+                    <select id="input-expense-category" class="form-input" required>
+                        <option value="Food">Food</option>
+                        <option value="Transport">Transport</option>
+                        <option value="Utilities">Utilities</option>
+                        <option value="Entertainment">Entertainment</option>
+                        <option value="Rent">Rent</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </label>
+                <label class="block">
+                    <span class="text-gray-400">Note (Optional)</span>
+                    <input type="text" id="input-expense-note" class="form-input" placeholder="e.g., Coffee with friends">
+                </label>
+                <button type="submit" class="w-full bg-indigo-500 text-white px-4 py-3 rounded-xl font-semibold transition-all duration-200 hover:bg-indigo-600 active:scale-95">
+                    Add Expense
+                </button>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- Custom Form Input Styling -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        indigo: {
+                            400: '#818cf8',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                        },
+                        teal: {
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                        }
+                    }
+                }
+            },
+            plugins: [
+                function({ addComponents }) {
+                    addComponents({
+                        '.form-input': {
+                            '@apply w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all duration-200': {},
+                        }
+                    })
+                }
+            ]
+        }
+    </script>
+    
+    <!-- Main Application JavaScript -->
+    <script type="module">
+        // Global state and DB
+        let state = {
+            income: 0,
+            dailyGoal: 0,
+            expenses: [],
+            plan: {
+                expenses: 0,
+                savings: 0,
+                emergency: 0,
+                investments: 0
+            }
+        };
+        const DB_NAME = 'advancedExpenseTrackerDB_v1';
+        
+        // Chart instances
+        let barChart, pieChart;
+        
+        // Format currency
+        const formatCurrency = (amount) => {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(amount);
+        };
+
+        // --- Database ---
+        function loadState() {
+            const data = localStorage.getItem(DB_NAME);
+            if (data) {
+                state = JSON.parse(data);
+            }
+        }
+        
+        function saveState() {
+            localStorage.setItem(DB_NAME, JSON.stringify(state));
+        }
+
+        // --- Toast Notifications ---
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let bgColor, icon;
+            switch(type) {
+                case 'warning':
+                    bgColor = 'bg-yellow-500';
+                    icon = '<i data-lucide="alert-triangle" class="w-5 h-5"></i>';
+                    break;
+                case 'error':
+                    bgColor = 'bg-red-500';
+                    icon = '<i data-lucide="x-circle" class="w-5 h-5"></i>';
+                    break;
+                default: // success
+                    bgColor = 'bg-green-500';
+                    icon = '<i data-lucide="check-circle" class="w-5 h-5"></i>';
+            }
+            
+            toast.className = `toast-enter flex items-center space-x-3 p-4 rounded-xl text-white font-semibold shadow-lg ${bgColor}`;
+            toast.innerHTML = `${icon}<span>${message}</span>`;
+            
+            container.appendChild(toast);
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons({
+                    nodes: [toast.querySelector('i')]
+                });
+            }
+            
+            setTimeout(() => {
+                toast.classList.remove('toast-enter');
+                toast.classList.add('toast-exit');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 3000);
+        }
+
+        // --- Modal Controls ---
+        function showModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('hidden');
+                setTimeout(() => modal.classList.remove('opacity-0', 'scale-95'), 10);
+            }
+        }
+        
+        function hideModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('opacity-0', 'scale-95');
+                setTimeout(() => modal.classList.add('hidden'), 250);
+            }
+        }
+        
+        function initModals() {
+            // Open buttons
+            document.getElementById('open-income-modal').addEventListener('click', () => showModal('modal-add-income'));
+            document.getElementById('open-goal-modal').addEventListener('click', () => showModal('modal-set-goal'));
+            document.getElementById('open-expense-modal').addEventListener('click', () => {
+                // Set default date to today
+                document.getElementById('input-expense-date').valueAsDate = new Date();
+                showModal('modal-add-expense');
+            });
+            
+            // Close buttons
+            document.querySelectorAll('.modal-close').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    hideModal(btn.closest('.modal').id);
+                });
+            });
+            
+            // Backdrop close
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        hideModal(modal.id);
+                    }
+                });
+            });
+        }
+
+        // --- Navigation ---
+        function showPage(pageId) {
+            // Hide all pages
+            document.querySelectorAll('.page-content').forEach(page => {
+                page.classList.add('hidden');
+            });
+            
+            // Show target page
+            const targetPage = document.getElementById(`page-${pageId}`);
+            if (targetPage) {
+                targetPage.classList.remove('hidden');
+            }
+            
+            // Update active nav items
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+                if (item.dataset.page === pageId) {
+                    item.classList.add('active');
+                }
+            });
+        }
+        
+        function initNavigation() {
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const pageId = item.dataset.page;
+                    showPage(pageId);
+                });
+            });
+        }
+
+        // --- Financial Plan Tabs ---
+        function initPlanTabs() {
+            const tabs = document.querySelectorAll('.plan-tab');
+            const contents = document.querySelectorAll('.plan-tab-content');
+            
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // Update tab styles
+                    tabs.forEach(t => t.classList.remove('active-tab', 'text-indigo-400', 'border-indigo-400'));
+                    tabs.forEach(t => t.classList.add('text-gray-400'));
+                    tab.classList.add('active-tab', 'text-indigo-400', 'border-indigo-400');
+                    tab.classList.remove('text-gray-400');
+                    
+                    // Show content
+                    contents.forEach(c => c.classList.add('hidden'));
+                    document.getElementById(tab.dataset.tab).classList.remove('hidden');
+                });
+            });
+        }
+        
+        // --- Form Handlers ---
+        function initForms() {
+            // Set Income
+            document.getElementById('form-add-income').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const amount = parseFloat(document.getElementById('input-income').value);
+                if (amount >= 0) {
+                    state.income = amount;
+                    saveState();
+                    updateUI();
+                    hideModal('modal-add-income');
+                    showToast('Income updated successfully!');
+                    document.getElementById('form-add-income').reset();
+                } else {
+                    showToast('Please enter a valid amount.', 'error');
+                }
+            });
+            
+            // Set Goal
+            document.getElementById('form-set-goal').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const amount = parseFloat(document.getElementById('input-goal').value);
+                if (amount >= 0) {
+                    state.dailyGoal = amount;
+                    saveState();
+                    updateUI();
+                    hideModal('modal-set-goal');
+                    showToast('Daily goal set!');
+                    document.getElementById('form-set-goal').reset();
+                } else {
+                    showToast('Please enter a valid amount.', 'error');
+                }
+            });
+            
+            // Add Expense
+            document.getElementById('form-add-expense').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const date = document.getElementById('input-expense-date').value; // YYYY-MM-DD
+                const amount = parseFloat(document.getElementById('input-expense-amount').value);
+                const category = document.getElementById('input-expense-category').value;
+                const note = document.getElementById('input-expense-note').value;
+                
+                if (amount > 0 && date && category) {
+                    state.expenses.push({
+                        id: Date.now(),
+                        date,
+                        amount,
+                        category,
+                        note
+                    });
+                    saveState();
+                    updateUI();
+                    hideModal('modal-add-expense');
+                    showToast('Expense added!');
+                    checkDailyGoal(date, amount);
+                    document.getElementById('form-add-expense').reset();
+                } else {
+                    showToast('Please fill all required fields.', 'error');
+                }
+            });
+            
+            // Save Plan
+            document.getElementById('plan-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                state.plan.expenses = parseFloat(document.getElementById('plan-input-expenses').value) || 0;
+                state.plan.savings = parseFloat(document.getElementById('plan-input-savings').value) || 0;
+                state.plan.emergency = parseFloat(document.getElementById('plan-input-emergency').value) || 0;
+                state.plan.investments = parseFloat(document.getElementById('plan-input-investments').value) || 0;
+                saveState();
+                updateUI(); // <-- THIS IS THE FIX
+                showToast('Financial plan saved!');
+            });
+        }
+        
+        // --- Goal Checking ---
+        function checkDailyGoal(date, newAmount) {
+            if (state.dailyGoal <= 0) return;
+            
+            const totalSpentToday = state.expenses
+                .filter(ex => ex.date === date)
+                .reduce((sum, ex) => sum + ex.amount, 0);
+            
+            const totalSpentBefore = totalSpentToday - newAmount;
+
+            if (totalSpentToday > state.dailyGoal && totalSpentBefore <= state.dailyGoal) {
+                // Just crossed the limit
+                showToast(`⚠️ You've exceeded your daily limit of ${formatCurrency(state.dailyGoal)}!`, 'warning');
+            } else if (totalSpentToday <= state.dailyGoal) {
+                // Still under or at limit
+                showToast(`🎉 Great! You're still under your daily budget.`, 'success');
+            }
+        }
+        
+        // --- History & CSV ---
+        function renderHistory() {
+            const container = document.getElementById('history-list');
+            container.innerHTML = ''; // Clear list
+            
+            if (state.expenses.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-400 py-8">No transactions yet.</p>';
+                return;
+            }
+            
+            const sortedExpenses = [...state.expenses].reverse(); // Newest first
+            
+            sortedExpenses.forEach(ex => {
+                const item = document.createElement('div');
+                item.className = 'glass-dark p-4 rounded-xl flex flex-col md:flex-row md:items-center justify-between transition-all duration-200';
+                item.innerHTML = `
+                    <div class="flex items-center space-x-4 mb-3 md:mb-0">
+                        <div class="p-3 bg-indigo-500/20 rounded-full">
+                            <i data-lucide="${getCategoryIcon(ex.category)}" class="text-indigo-400"></i>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-white">${ex.category}</p>
+                            <p class="text-sm text-gray-400">${ex.note || 'No note'} &bull; ${new Date(ex.date).toLocaleDateString()}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                         <span class="text-lg font-bold text-red-400 mr-4">-${formatCurrency(ex.amount)}</span>
+                         <button data-id="${ex.id}" class="delete-expense-btn text-gray-500 hover:text-red-400 transition-all duration-200">
+                             <i data-lucide="trash-2" class="w-5 h-5"></i>
+                         </button>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+            
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons({
+                    nodes: container.querySelectorAll('i')
+                });
+            }
+        }
+
+        // --- Render Recent Expenses for Dashboard ---
+        function renderRecentExpenses() {
+            const container = document.getElementById('dashboard-recent-list');
+            container.innerHTML = ''; // Clear list
+            
+            if (state.expenses.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-400 py-4">No recent transactions.</p>';
+                return;
+            }
+            
+            // Get last 3 expenses
+            const recentExpenses = [...state.expenses].slice(-3).reverse(); 
+            
+            recentExpenses.forEach(ex => {
+                const item = document.createElement('div');
+                item.className = 'glass-dark p-3 rounded-lg flex items-center justify-between transition-all duration-200';
+                item.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <div class="p-2 bg-indigo-500/20 rounded-full">
+                            <i data-lucide="${getCategoryIcon(ex.category)}" class="w-5 h-5 text-indigo-400"></i>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-white text-sm">${ex.category}</p>
+                            <p class="text-xs text-gray-400">${new Date(ex.date).toLocaleDateString()}</p>
+                        </div>
+                    </div>
+                    <span class="text-sm font-bold text-red-400">-${formatCurrency(ex.amount)}</span>
+                `;
+                container.appendChild(item);
+            });
+            
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons({
+                    nodes: container.querySelectorAll('i')
+                });
+            }
+        }
+        
+        function getCategoryIcon(category) {
+            switch(category.toLowerCase()) {
+                case 'food': return 'utensils';
+                case 'transport': return 'car';
+                case 'utilities': return 'bolt';
+                case 'entertainment': return 'ticket';
+                case 'rent': return 'home';
+                default: return 'credit-card';
+            }
+        }
+        
+        function initHistoryActions() {
+            // Delete expense
+            document.getElementById('history-list').addEventListener('click', (e) => {
+                const deleteBtn = e.target.closest('.delete-expense-btn');
+                if (deleteBtn) {
+                    const id = parseInt(deleteBtn.dataset.id);
+                    // A custom confirm modal would be better, but prompt is fine for this demo
+                    if (confirm('Are you sure you want to delete this expense?')) {
+                        state.expenses = state.expenses.filter(ex => ex.id !== id);
+                        saveState();
+                        updateUI();
+                        showToast('Expense deleted.', 'error');
+                    }
+                }
+            });
+            
+            // Export CSV
+            document.getElementById('export-csv-btn').addEventListener('click', () => {
+                if (state.expenses.length === 0) {
+                    showToast('No data to export.', 'warning');
+                    return;
+                }
+                
+                let csvContent = "data:text/csv;charset=utf-8,ID,Date,Category,Amount,Note\n";
+                state.expenses.forEach(ex => {
+                    csvContent += `${ex.id},${ex.date},${ex.category},${ex.amount},"${ex.note || ''}"\n`;
+                });
+                
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", "expenses.csv");
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                showToast('Exporting data...');
+            });
+
+            // Reset Month
+            document.getElementById('reset-month-btn').addEventListener('click', () => {
+                if (confirm('Are you sure you want to reset the month? This will delete all current expenses.')) {
+                    state.expenses = [];
+                    saveState();
+                    updateUI();
+                    showToast('🎉 Month completed! Ready for a new start.', 'success');
+                }
+            });
+        }
+
+        // --- Charts ---
+        function renderCharts() {
+            const totalSpent = state.expenses.reduce((sum, ex) => sum + ex.amount, 0);
+            
+            // 1. Pie Chart (Category)
+            const categoryData = state.expenses.reduce((acc, ex) => {
+                acc[ex.category] = (acc[ex.category] || 0) + ex.amount;
+                return acc;
+            }, {});
+            
+            const pieCtx = document.getElementById('pie-chart').getContext('2d');
+            if (pieChart) pieChart.destroy();
+            
+            if (state.expenses.length > 0) {
+                pieChart = new Chart(pieCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(categoryData),
+                        datasets: [{
+                            data: Object.values(categoryData),
+                            backgroundColor: ['#818cf8', '#f87171', '#34d399', '#facc15', '#fb923c', '#a78bfa'],
+                            borderColor: '#1f2937', // bg-gray-800... wait, body is 900.
+                            borderColor: '#111827', // bg-gray-900
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { color: '#cbd5e1' } // text-gray-300
+                            }
+                        }
+                    }
+                });
+            } else {
+                 pieCtx.clearRect(0, 0, pieCtx.canvas.width, pieCtx.canvas.height);
+                 pieCtx.fillStyle = '#6b7280'; // text-gray-500
+                 pieCtx.textAlign = 'center';
+                 pieCtx.fillText('No spending data for pie chart.', pieCtx.canvas.width / 2, pieCtx.canvas.height / 2);
+            }
+
+            // 2. Bar Chart (Daily)
+            const dailyData = state.expenses.reduce((acc, ex) => {
+                acc[ex.date] = (acc[ex.date] || 0) + ex.amount;
+                return acc;
+            }, {});
+            
+            // Sort by date
+            const sortedDailyData = Object.entries(dailyData).sort((a, b) => new Date(a[0]) - new Date(b[0]));
+            
+            const barCtx = document.getElementById('bar-chart').getContext('2d');
+            if (barChart) barChart.destroy();
+            
+            if (state.expenses.length > 0) {
+                barChart = new Chart(barCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: sortedDailyData.map(entry => new Date(entry[0]).toLocaleDateString()),
+                        datasets: [{
+                            label: 'Daily Spending',
+                            data: sortedDailyData.map(entry => entry[1]),
+                            backgroundColor: 'rgba(99, 102, 241, 0.6)', // indigo-500
+                            borderColor: 'rgba(99, 102, 241, 1)',
+                            borderWidth: 1,
+                            borderRadius: 4,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: {
+                            duration: 1000,
+                            easing: 'easeInOutQuart'
+                        },
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                                ticks: { color: '#cbd5e1' }
+                            },
+                            x: {
+                                grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                                ticks: { color: '#cbd5e1' }
+                            }
+                        }
+                    }
+                });
+            } else {
+                 barCtx.clearRect(0, 0, barCtx.canvas.width, barCtx.canvas.height);
+                 barCtx.fillStyle = '#6b7280';
+                 barCtx.textAlign = 'center';
+                 barCtx.fillText('No spending data for bar chart.', barCtx.canvas.width / 2, barCtx.canvas.height / 2);
+            }
+        }
+        
+        // --- Confetti Animation ---
+        function initConfetti() {
+            const canvas = document.getElementById('confetti-canvas');
+            const ctx = canvas.getContext('2d');
+            let particles = [];
+            const colors = ["#818cf8", "#f87171", "#34d399", "#facc15", "#fb923c", "#a78bfa"];
+
+            function Particle(x, y) {
+                this.x = x;
+                this.y = y;
+                this.size = Math.random() * 5 + 2;
+                this.vx = Math.random() * 6 - 3;
+                this.vy = Math.random() * -10 - 2; // Shoot upwards
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+                this.opacity = 1;
+            }
+
+            Particle.prototype.update = function() {
+                this.vy += 0.1; // Gravity
+                this.x += this.vx;
+                this.y += this.vy;
+                this.opacity -= 0.005;
+            };
+
+            Particle.prototype.draw = function() {
+                ctx.globalAlpha = this.opacity;
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x, this.y, this.size, this.size);
+            };
+
+            function createParticles() {
+                const W = window.innerWidth;
+                const H = window.innerHeight;
+                canvas.width = W;
+                canvas.height = H;
+                particles = [];
+                // Shoot from bottom center
+                for (let i = 0; i < 200; i++) {
+                    particles.push(new Particle(W / 2, H));
+                }
+            }
+
+            let animationFrameId;
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particles.forEach((p, index) => {
+                    p.update();
+                    p.draw();
+                    if (p.y < 0 || p.opacity <= 0) { // Changed this to check p.y < 0 for removal
+                        particles.splice(index, 1);
+                    }
+                });
+                
+                if (particles.length > 0) {
+                    animationFrameId = requestAnimationFrame(animate);
+                } else {
+                    canvas.style.display = 'none';
+                    if(animationFrameId) {
+                        cancelAnimationFrame(animationFrameId);
+                        animationFrameId = null;
+                    }
+                }
+            }
+
+            document.getElementById('celebrate-btn').addEventListener('click', () => {
+                if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId);
+                    animationFrameId = null;
+                }
+                canvas.style.display = 'block';
+                createParticles();
+                animate();
+            });
+        }
+        
+        // --- Master UI Update ---
+        function updateUI() {
+            const totalSpent = state.expenses.reduce((sum, ex) => sum + ex.amount, 0);
+            const remaining = state.income - totalSpent;
+
+            // Dashboard
+            document.getElementById('dash-income').textContent = formatCurrency(state.income);
+            document.getElementById('dash-spent').textContent = formatCurrency(totalSpent);
+            document.getElementById('dash-remaining').textContent = formatCurrency(remaining);
+            document.getElementById('dash-remaining').classList.toggle('text-red-400', remaining < 0);
+            document.getElementById('dash-remaining').classList.toggle('text-white', remaining >= 0);
+            
+            // Dashboard - Today's Goal
+            const today = new Date().toISOString().split('T')[0];
+            const totalSpentToday = state.expenses
+                .filter(ex => ex.date === today)
+                .reduce((sum, ex) => sum + ex.amount, 0);
+            
+            document.getElementById('dash-goal-text').textContent = `${formatCurrency(totalSpentToday)} / ${formatCurrency(state.dailyGoal)}`;
+            let goalPercent = 0;
+            if (state.dailyGoal > 0) {
+                goalPercent = Math.min((totalSpentToday / state.dailyGoal) * 100, 100);
+            }
+            const goalProgressEl = document.getElementById('dash-goal-progress');
+            goalProgressEl.style.width = `${goalPercent}%`;
+            goalProgressEl.classList.toggle('bg-red-500', totalSpentToday > state.dailyGoal);
+            goalProgressEl.classList.toggle('bg-indigo-500', totalSpentToday <= state.dailyGoal);
+
+            // Dashboard - Plan Summary
+            document.getElementById('dash-plan-savings').textContent = formatCurrency(state.plan.savings);
+            document.getElementById('dash-plan-emergency').textContent = formatCurrency(state.plan.emergency);
+            document.getElementById('dash-plan-investments').textContent = formatCurrency(state.plan.investments);
+            document.getElementById('dash-plan-expenses').textContent = formatCurrency(state.plan.expenses);
+            
+            // Setup Page
+            document.getElementById('setup-income-display').textContent = formatCurrency(state.income);
+            document.getElementById('setup-goal-display').textContent = `${formatCurrency(state.dailyGoal)} / day`;
+            
+            // Plan Page
+            document.getElementById('plan-input-expenses').value = state.plan.expenses || '';
+            document.getElementById('plan-input-savings').value = state.plan.savings || '';
+            document.getElementById('plan-input-emergency').value = state.plan.emergency || '';
+            document.getElementById('plan-input-investments').value = state.plan.investments || '';
+
+            // History
+            renderHistory();
+
+            // Dashboard Recent Expenses
+            renderRecentExpenses();
+            
+            // Charts
+            renderCharts();
+            
+            // Render all icons
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            } else {
+                console.warn('Lucide icons not loaded yet. Retrying in 1s...');
+                // Try again after a short delay
+                setTimeout(() => {
+                    if (typeof lucide !== 'undefined') {
+                        lucide.createIcons();
+                        console.log('Lucide icons loaded on retry.');
+                    } else {
+                        console.error('Lucide failed to load.');
+                    }
+                }, 1000);
+            }
+        }
+
+        // --- Init ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set global chart defaults
+            Chart.defaults.color = '#cbd5e1'; // text-gray-300
+            Chart.defaults.font.family = 'Inter, sans-serif';
+            
+            loadState();
+            initNavigation();
+            initModals();
+            initForms();
+            initPlanTabs();
+            initHistoryActions();
+            initConfetti();
+            updateUI();
+            
+            // Show dashboard on load
+            showPage('dashboard');
+        });
+    </script>
+</body>
+</html>
+
