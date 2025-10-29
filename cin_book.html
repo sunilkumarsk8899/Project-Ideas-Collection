@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CineBook - Movie Ticket Booker</title>
+    <!-- Load Tailwind CSS --><script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Load Google Font (Inter) --><link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Load QRCode.js for client-side QR generation --><script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs/qrcode.min.js"></script>
+    
+    <!-- Custom Styles --><style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827; /* bg-gray-900 */
+        }
+        
+        /* Page transition helper classes */
+        .page {
+            display: none; /* Hide all pages by default */
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        .page.active {
+            display: block; /* Show active page */
+        }
+        
+        /* Simple fade-in animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Custom seat styles */
+        .seat {
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+        }
+        .seat.available:hover {
+            background-color: #22c55e; /* bg-green-500 */
+            transform: scale(1.1);
+        }
+        .seat.selected {
+            background-color: #3b82f6; /* bg-blue-500 */
+            color: white;
+            transform: scale(1.1);
+        }
+        .seat.occupied {
+            background-color: #4b5563; /* bg-gray-600 */
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body class="text-white">
+
+    <!-- Main Application Container --><div class="container mx-auto max-w-5xl p-4 min-h-screen">
+
+        <!-- Header --><header class="text-center my-6">
+            <h1 class="text-4xl font-bold text-blue-400">CineBook</h1>
+            <p class="text-lg text-gray-300">Your personal movie ticket booker</p>
+        </header>
+
+        <main>
+            <!-- ====================================================== --><!-- PAGE 1: MOVIE SELECTION --><!-- ====================================================== --><section id="movie-selection-page" class="page active">
+                <h2 class="text-3xl font-semibold mb-6 text-center">Now Showing</h2>
+                <div id="movie-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
+                    <!-- Movie cards will be dynamically inserted here by JavaScript --></div>
+            </section>
+
+            <!-- ====================================================== --><!-- PAGE 2: SHOWTIME & DETAILS --><!-- ====================================================== --><section id="showtime-page" class="page">
+                <button class="back-btn mb-4 text-blue-400 hover:text-blue-300" data-target="movie-selection-page">&larr; Back to Movies</button>
+                
+                <div class="flex flex-col md:flex-row gap-8">
+                    <!-- Movie Poster & Details --><div class="md:w-1/3 flex-shrink-0">
+                        <img id="showtime-poster" src="" alt="Movie Poster" class="rounded-lg shadow-lg w-full">
+                    </div>
+                    <!-- Showtimes --><div class="md:w-2/3">
+                        <h2 id="showtime-title" class="text-4xl font-bold mb-2"></h2>
+                        <div class="flex items-center gap-4 mb-4 text-gray-400">
+                            <span id="showtime-rating" class="border border-gray-500 px-2 py-0.5 rounded text-sm"></span>
+                            <span id="showtime-duration"></span>
+                        </div>
+                        <p id="showtime-desc" class="text-gray-300 mb-6"></p>
+                        
+                        <h3 class="text-2xl font-semibold mb-4">Select Showtime</h3>
+                        <div id="showtime-list" class="flex flex-wrap gap-4">
+                            <!-- Showtime buttons will be inserted here --></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ====================================================== --><!-- PAGE 3: SEAT SELECTION --><!-- ====================================================== --><section id="seat-selection-page" class="page">
+                <button class="back-btn mb-4 text-blue-400 hover:text-blue-300" data-target="showtime-page">&larr; Back to Showtimes</button>
+                
+                <h2 class="text-3xl font-semibold mb-6 text-center">Select Your Seats</h2>
+                
+                <!-- Screen --><div class="w-full max-w-2xl mx-auto">
+                    <div class="bg-gray-200 text-gray-800 text-center py-2 rounded-t-lg shadow-md font-medium text-lg tracking-widest">
+                        SCREEN
+                    </div>
+                    <div class="bg-gray-800 p-4 sm:p-8 rounded-b-lg shadow-lg">
+                        <!-- Seating Grid --><div id="seat-grid" class="grid grid-cols-10 gap-2 justify-center">
+                            <!-- Seats will be dynamically inserted here --></div>
+                    </div>
+                </div>
+
+                <!-- Legend --><div class="flex justify-center gap-4 sm:gap-6 my-6">
+                    <div class="flex items-center gap-2">
+                        <div class="w-5 h-5 bg-gray-300 rounded"></div>
+                        <span class="text-sm">Available</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-5 h-5 bg-blue-500 rounded"></div>
+                        <span class="text-sm">Selected</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-5 h-5 bg-gray-600 rounded"></div>
+                        <span class="text-sm">Occupied</span>
+                    </div>
+                </div>
+
+                <!-- Booking Summary Footer --><div class="sticky bottom-0 bg-gray-900 bg-opacity-90 backdrop-blur-sm p-4 rounded-t-lg shadow-2xl max-w-5xl mx-auto mt-6">
+                    <div class="flex justify-between items-center max-w-2xl mx-auto">
+                        <div>
+                            <span class="text-lg">Seats: <span id="selected-seats-count" class="font-bold">0</span></span>
+                            <h3 class="text-2xl font-bold">Total: $<span id="total-price">0</span></h3>
+                        </div>
+                        <button id="proceed-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition-transform hover:scale-105 disabled:bg-gray-500 disabled:cursor-not-allowed">
+                            Book Now
+                        </button>
+                    </div>
+                    <div id="seat-error" class="text-red-400 text-center mt-2 h-4"></div>
+                </div>
+            </section>
+
+            <!-- ====================================================== --><!-- PAGE 4: CONFIRMATION --><!-- ====================================================== --><section id="confirmation-page" class="page">
+                <button class="back-btn mb-4 text-blue-400 hover:text-blue-300" data-target="seat-selection-page">&larr; Back to Seats</button>
+                
+                <div class="bg-gray-800 p-8 rounded-lg shadow-xl max-w-lg mx-auto">
+                    <h2 class="text-3xl font-bold mb-6 text-center">Booking Summary</h2>
+                    <div class="space-y-4">
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Movie:</span>
+                            <span id="confirm-movie" class="font-semibold text-right"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Showtime:</span>
+                            <span id="confirm-showtime" class="font-semibold text-right"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Seats:</span>
+                            <span id="confirm-seats" class="font-semibold text-right"></span>
+                        </div>
+                        <div class="border-t border-gray-600 my-4"></div>
+                        <div class="flex justify-between text-2xl font-bold">
+                            <span class="text-gray-300">Total:</span>
+                            <span id="confirm-total" class="text-green-400"></span>
+                        </div>
+                    </div>
+                    <button id="confirm-booking-btn" class="mt-8 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-transform hover:scale-105">
+                        Confirm Booking
+                    </button>
+                </div>
+            </section>
+
+            <!-- ====================================================== --><!-- PAGE 5: SUCCESS --><!-- ====================================================== --><section id="success-page" class="page">
+                <div class="bg-gray-800 p-8 rounded-lg shadow-xl max-w-lg mx-auto text-center">
+                    <div class="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <!-- Checkmark Icon --><svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    </div>
+                    <h2 class="text-3xl font-bold mb-4">Booking Confirmed!</h2>
+                    <p class="text-gray-300 mb-6">Your e-tickets and QR code have been sent to your (mock) email. Enjoy the movie!</p>
+                    
+                    <!-- QR Code will be rendered here --><div id="qrcode" class="mx-auto p-2 bg-white rounded-lg inline-block mb-8"></div>
+                    
+                    <div class="flex flex-col gap-4">
+                        <button id="scan-ticket-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-transform hover:scale-105">
+                            Scan Ticket (Simulated)
+                        </button>
+                        <button id="book-another-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-transform hover:scale-105">
+                            Book Another Movie
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ====================================================== --><!-- PAGE 6: TICKET DETAILS (after QR scan) --><!-- ====================================================== --><section id="ticket-details-page" class="page">
+                <button class="back-btn mb-4 text-blue-400 hover:text-blue-300" data-target="success-page">&larr; Back to Success</button>
+                
+                <div class="bg-gray-800 p-8 rounded-lg shadow-xl max-w-lg mx-auto text-center">
+                    <h2 class="text-3xl font-bold mb-6">Your Ticket Details</h2>
+                    <p class="text-gray-300 mb-8">Here are the details for Booking ID: <span id="ticket-booking-id" class="font-semibold text-blue-300"></span></p>
+
+                    <div class="space-y-4 text-left">
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Movie:</span>
+                            <span id="ticket-movie" class="font-semibold text-right"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Showtime:</span>
+                            <span id="ticket-showtime" class="font-semibold text-right"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Theater:</span>
+                            <span id="ticket-theater" class="font-semibold text-right"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Seats:</span>
+                            <span id="ticket-seats" class="font-semibold text-right"></span>
+                        </div>
+                        <div class="border-t border-gray-600 my-4"></div>
+                        <div class="flex justify-between text-2xl font-bold">
+                            <span class="text-gray-300">Total Paid:</span>
+                            <span id="ticket-total" class="text-green-400"></span>
+                        </div>
+                    </div>
+                    <button id="new-booking-from-ticket-btn" class="mt-8 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-transform hover:scale-105">
+                        Start New Booking
+                    </button>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- =================================================================== --><!-- JAVASCRIPT LOGIC --><!-- =================================================================== --><script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- DATABASE ---
+            // In a real app, this comes from a server.
+            // Using placeholder images for reliability.
+            const TICKET_PRICE = 12;
+            const db = {
+                movies: [
+                    {
+                        id: 'm1',
+                        title: 'Dune: Part Two',
+                        posterUrl: 'https://placehold.co/300x450/6366f1/ffffff?text=Dune+Two',
+                        description: 'Paul Atreides unites with Chani and the Fremen while seeking revenge against the conspirators who destroyed his family.',
+                        rating: 'PG-13',
+                        duration: '2h 46m',
+                        showtimes: [
+                            { id: 'st1', time: '1:00 PM', theater: 'Cineplex 3' },
+                            { id: 'st2', time: '4:30 PM', theater: 'Cineplex 3' },
+                            { id: 'st3', time: '8:00 PM', theater: 'IMAX 1' },
+                        ]
+                    },
+                    {
+                        id: 'm2',
+                        title: 'The Interstellar',
+                        posterUrl: 'https://placehold.co/300x450/ec4899/ffffff?text=Interstellar',
+                        description: 'A team of explorers travel through a wormhole in space in an attempt to ensure humanity\'s survival.',
+                        rating: 'PG-13',
+                        duration: '2h 49m',
+                        showtimes: [
+                            { id: 'st4', time: '3:00 PM', theater: 'IMAX 1' },
+                            { id: 'st5', time: '7:00 PM', theater: 'Cineplex 4' },
+                        ]
+                    },
+                    {
+                        id: 'm3',
+                        title: 'Cyber Runner',
+                        posterUrl: 'https://placehold.co/300x450/f59e0b/ffffff?text=Cyber+Runner',
+                        description: 'In a dystopian future, a cyber-enhanced runner uncovers a conspiracy that could change the world.',
+                        rating: 'R',
+                        duration: '2h 15m',
+                        showtimes: [
+                            { id: 'st6', time: '2:15 PM', theater: 'Cineplex 2' },
+                            { id: 'st7', time: '5:30 PM', theater: 'Cineplex 2' },
+                            { id: 'st8', time: '9:00 PM', theater: 'Cineplex 1' },
+                        ]
+                    },
+                    {
+                        id: 'm4',
+                        title: 'Ocean\'s Secret',
+                        posterUrl: 'https://placehold.co/300x450/10b981/ffffff?text=Ocean+Secret',
+                        description: 'A marine biologist discovers a hidden underwater civilization while on a deep-sea expedition.',
+                        rating: 'PG',
+                        duration: '1h 55m',
+                        showtimes: [
+                            { id: 'st9', time: '1:30 PM', theater: 'Cineplex 1' },
+                            { id: 'st10', time: '4:00 PM', theater: 'Cineplex 4' },
+                        ]
+                    }
+                ],
+                // Mock occupied seats for each showtime
+                occupiedSeats: {
+                    'st1': ['A3', 'A4', 'B5', 'B6', 'F8', 'F9'],
+                    'st2': ['C1', 'C2', 'C3', 'D5', 'G7'],
+                    'st3': ['A1', 'B2', 'C3', 'D4', 'E5', 'F6', 'G7'],
+                    'st4': ['E1', 'E2', 'F1', 'F2', 'G1', 'G2'],
+                    'st5': ['B8', 'B9', 'C7', 'D6', 'E5'],
+                    'st6': ['A5', 'B5', 'C5', 'D5', 'E5', 'F5'],
+                    'st7': ['G1', 'G2', 'G3', 'G4', 'F1', 'F2'],
+                    'st8': ['D3', 'D4', 'D5', 'D6', 'D7'],
+                    'st9': ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'],
+                    'st10': ['F6', 'F7', 'E6', 'E7', 'G5', 'G8'],
+                },
+                // Store completed bookings to simulate lookup by QR code
+                bookings: {}
+            };
+
+            // --- APPLICATION STATE ---
+            let appState = {
+                currentPage: 'movie-selection-page',
+                selectedMovieId: null,
+                selectedShowtimeId: null,
+                selectedSeats: [], // array of seat IDs like "A1", "B5"
+                currentBooking: null // Stores details of the last confirmed booking
+            };
+
+            // --- DOM ELEMENTS ---
+            const pages = document.querySelectorAll('.page');
+            const movieGrid = document.getElementById('movie-grid');
+            
+            // Showtime Page Elements
+            const showtimePage = document.getElementById('showtime-page');
+            const showtimePoster = document.getElementById('showtime-poster');
+            const showtimeTitle = document.getElementById('showtime-title');
+            const showtimeRating = document.getElementById('showtime-rating');
+            const showtimeDuration = document.getElementById('showtime-duration');
+            const showtimeDesc = document.getElementById('showtime-desc');
+            const showtimeList = document.getElementById('showtime-list');
+
+            // Seat Selection Page Elements
+            const seatSelectionPage = document.getElementById('seat-selection-page');
+            const seatGrid = document.getElementById('seat-grid');
+            const selectedSeatsCount = document.getElementById('selected-seats-count');
+            const totalPrice = document.getElementById('total-price');
+            const proceedBtn = document.getElementById('proceed-btn');
+            const seatError = document.getElementById('seat-error');
+
+            // Confirmation Page Elements
+            const confirmMovie = document.getElementById('confirm-movie');
+            const confirmShowtime = document.getElementById('confirm-showtime');
+            const confirmSeats = document.getElementById('confirm-seats');
+            const confirmTotal = document.getElementById('confirm-total');
+            const confirmBookingBtn = document.getElementById('confirm-booking-btn');
+            
+            // Success Page Elements
+            const qrcodeContainer = document.getElementById('qrcode');
+            const scanTicketBtn = document.getElementById('scan-ticket-btn');
+            const bookAnotherBtn = document.getElementById('book-another-btn');
+
+            // Ticket Details Page Elements
+            const ticketBookingId = document.getElementById('ticket-booking-id');
+            const ticketMovie = document.getElementById('ticket-movie');
+            const ticketShowtime = document.getElementById('ticket-showtime');
+            const ticketTheater = document.getElementById('ticket-theater');
+            const ticketSeats = document.getElementById('ticket-seats');
+            const ticketTotal = document.getElementById('ticket-total');
+            const newBookingFromTicketBtn = document.getElementById('new-booking-from-ticket-btn');
+
+            // Back Buttons
+            const backBtns = document.querySelectorAll('.back-btn');
+
+            // --- NAVIGATION ---
+            function navigateTo(pageId) {
+                pages.forEach(page => {
+                    page.classList.remove('active');
+                });
+                document.getElementById(pageId).classList.add('active');
+                appState.currentPage = pageId;
+                window.scrollTo(0, 0); // Scroll to top on page change
+            }
+
+            // --- UTILITY FUNCTIONS ---
+            function generateBookingId() {
+                return 'BOOK-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+            }
+
+            // --- RENDER FUNCTIONS ---
+            
+            /**
+             * Renders the grid of movies on the main page.
+             */
+            function renderMovieGrid() {
+                movieGrid.innerHTML = ''; // Clear existing grid
+                db.movies.forEach(movie => {
+                    const movieCard = document.createElement('div');
+                    movieCard.className = 'bg-gray-800 rounded-lg shadow-lg overflow-hidden cursor-pointer transition-transform transform hover:scale-105';
+                    movieCard.dataset.movieId = movie.id;
+                    
+                    movieCard.innerHTML = `
+                        <img src="${movie.posterUrl}" alt="${movie.title}" class="w-full h-auto object-cover">
+                        <div class="p-4">
+                            <h3 class="text-lg font-semibold truncate">${movie.title}</h3>
+                            <p class="text-sm text-gray-400">${movie.rating} | ${movie.duration}</p>
+                        </div>
+                    `;
+                    movieGrid.appendChild(movieCard);
+                });
+            }
+
+            /**
+             * Renders the details and showtimes for a selected movie.
+             */
+            function renderShowtimePage(movieId) {
+                const movie = db.movies.find(m => m.id === movieId);
+                if (!movie) return;
+
+                appState.selectedMovieId = movieId;
+
+                // Populate movie details
+                showtimePoster.src = movie.posterUrl;
+                showtimePoster.alt = movie.title;
+                showtimeTitle.textContent = movie.title;
+                showtimeRating.textContent = movie.rating;
+                showtimeDuration.textContent = movie.duration;
+                showtimeDesc.textContent = movie.description;
+
+                // Populate showtimes
+                showtimeList.innerHTML = '';
+                movie.showtimes.forEach(showtime => {
+                    const showtimeBtn = document.createElement('button');
+                    showtimeBtn.className = 'showtime-btn bg-gray-700 hover:bg-blue-600 text-white font-medium py-2 px-6 rounded-lg transition-colors';
+                    showtimeBtn.textContent = `${showtime.time} - ${showtime.theater}`;
+                    showtimeBtn.dataset.showtimeId = showtime.id;
+                    showtimeList.appendChild(showtimeBtn);
+                });
+            }
+
+            /**
+             * Renders the seat selection grid.
+             */
+            function renderSeatSelectionPage(showtimeId) {
+                appState.selectedShowtimeId = showtimeId;
+                appState.selectedSeats = []; // Clear seats on new showtime
+                
+                const occupied = db.occupiedSeats[showtimeId] || [];
+                seatGrid.innerHTML = ''; // Clear old grid
+
+                const rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+                const cols = 10;
+
+                rows.forEach(row => {
+                    for (let i = 1; i <= cols; i++) {
+                        const seatId = `${row}${i}`;
+                        const seat = document.createElement('div');
+                        seat.className = 'seat w-6 h-6 sm:w-8 sm:h-8 rounded flex items-center justify-center text-xs sm:text-sm font-semibold';
+                        seat.dataset.seatId = seatId;
+                        // seat.textContent = seatId; // Optional: show seat number
+                        
+                        if (occupied.includes(seatId)) {
+                            seat.classList.add('occupied');
+                        } else {
+                            seat.classList.add('available', 'bg-gray-300', 'text-gray-800');
+                        }
+                        seatGrid.appendChild(seat);
+                    }
+                });
+                
+                updateSeatSelectionUI();
+            }
+
+            /**
+             * Updates the total price and selected seats count.
+             */
+            function updateSeatSelectionUI() {
+                const count = appState.selectedSeats.length;
+                selectedSeatsCount.textContent = count;
+                totalPrice.textContent = (count * TICKET_PRICE).toFixed(2);
+                
+                // Enable/disable proceed button
+                proceedBtn.disabled = count === 0;
+
+                // Update seat visual classes
+                document.querySelectorAll('#seat-grid .seat').forEach(seat => {
+                    const seatId = seat.dataset.seatId;
+                    if (!seat.classList.contains('occupied')) {
+                        if (appState.selectedSeats.includes(seatId)) {
+                            seat.classList.remove('available', 'bg-gray-300', 'text-gray-800');
+                            seat.classList.add('selected');
+                        } else {
+                            seat.classList.remove('selected');
+                            seat.classList.add('available', 'bg-gray-300', 'text-gray-800');
+                        }
+                    }
+                });
+            }
+
+            /**
+             * Renders the final confirmation page.
+             */
+            function renderConfirmationPage() {
+                const movie = db.movies.find(m => m.id === appState.selectedMovieId);
+                const showtime = movie.showtimes.find(s => s.id === appState.selectedShowtimeId);
+                
+                confirmMovie.textContent = movie.title;
+                confirmShowtime.textContent = `${showtime.time} - ${showtime.theater}`;
+                confirmSeats.textContent = appState.selectedSeats.join(', ');
+                confirmTotal.textContent = `$${(appState.selectedSeats.length * TICKET_PRICE).toFixed(2)}`;
+            }
+
+            /**
+             * Renders the success page with QR code.
+             */
+            function renderSuccessPage() {
+                const movie = db.movies.find(m => m.id === appState.selectedMovieId);
+                const showtime = movie.showtimes.find(s => s.id === appState.selectedShowtimeId);
+
+                // Create booking object
+                const booking = {
+                    bookingId: generateBookingId(),
+                    movieTitle: movie.title,
+                    showtimeTime: showtime.time,
+                    showtimeTheater: showtime.theater,
+                    seats: appState.selectedSeats,
+                    totalPrice: (appState.selectedSeats.length * TICKET_PRICE).toFixed(2),
+                    timestamp: new Date().toISOString()
+                };
+
+                // Store booking
+                db.bookings[booking.bookingId] = booking;
+                appState.currentBooking = booking; // Keep track of the last booking
+
+                // Generate QR code
+                qrcodeContainer.innerHTML = ''; // Clear previous QR
+                new QRCode(qrcodeContainer, {
+                    text: booking.bookingId, // QR code will contain the booking ID
+                    width: 180,
+                    height: 180,
+                    colorDark : "#111827", // bg-gray-900 for dark mode
+                    colorLight : "#ffffff",
+                    correctLevel : QRCode.CorrectLevel.H
+                });
+            }
+
+            /**
+             * Renders the ticket details page based on a booking ID.
+             */
+            function renderTicketDetailsPage(bookingId) {
+                const booking = db.bookings[bookingId];
+                if (!booking) {
+                    alert('Booking not found!');
+                    // Optionally, navigate back to success page or home
+                    navigateTo('success-page'); 
+                    return;
+                }
+
+                ticketBookingId.textContent = booking.bookingId;
+                ticketMovie.textContent = booking.movieTitle;
+                ticketShowtime.textContent = booking.showtimeTime;
+                ticketTheater.textContent = booking.showtimeTheater;
+                ticketSeats.textContent = booking.seats.join(', ');
+                ticketTotal.textContent = `$${booking.totalPrice}`;
+            }
+
+            // --- EVENT HANDLERS ---
+            
+            /**
+             * Handles clicking on a movie card.
+             */
+            function onMovieClick(e) {
+                const card = e.target.closest('[data-movie-id]');
+                if (card) {
+                    const movieId = card.dataset.movieId;
+                    renderShowtimePage(movieId);
+                    navigateTo('showtime-page');
+                }
+            }
+
+            /**
+             * Handles clicking on a showtime button.
+             */
+            function onShowtimeClick(e) {
+                const btn = e.target.closest('[data-showtime-id]');
+                if (btn) {
+                    const showtimeId = btn.dataset.showtimeId;
+                    renderSeatSelectionPage(showtimeId);
+                    navigateTo('seat-selection-page');
+                }
+            }
+
+            /**
+             * Handles clicking on a seat.
+             */
+            function onSeatClick(e) {
+                const seat = e.target.closest('[data-seat-id]');
+                if (seat && !seat.classList.contains('occupied')) {
+                    const seatId = seat.dataset.seatId;
+                    const index = appState.selectedSeats.indexOf(seatId);
+                    
+                    if (index > -1) {
+                        // Seat is already selected, de-select it
+                        appState.selectedSeats.splice(index, 1);
+                    } else {
+                        // Seat is available, select it
+                        appState.selectedSeats.push(seatId);
+                    }
+                    
+                    updateSeatSelectionUI();
+                }
+            }
+            
+            /**
+             * Handles clicking the "Book Now" / "Proceed" button.
+             */
+            function onProceedClick() {
+                if (appState.selectedSeats.length === 0) {
+                    seatError.textContent = 'Please select at least one seat.';
+                    setTimeout(() => seatError.textContent = '', 3000);
+                    return;
+                }
+                seatError.textContent = '';
+                renderConfirmationPage();
+                navigateTo('confirmation-page');
+            }
+
+            /**
+             * Resets the application state to start over.
+             */
+            function resetApp() {
+                appState = {
+                    currentPage: 'movie-selection-page',
+                    selectedMovieId: null,
+                    selectedShowtimeId: null,
+                    selectedSeats: [],
+                    currentBooking: null
+                };
+                navigateTo('movie-selection-page');
+            }
+
+
+            // --- ATTACH EVENT LISTENERS ---
+            
+            // Movie grid (event delegation)
+            movieGrid.addEventListener('click', onMovieClick);
+            
+            // Showtime list (event delegation)
+            showtimeList.addEventListener('click', onShowtimeClick);
+            
+            // Seat grid (event delegation)
+            seatGrid.addEventListener('click', onSeatClick);
+
+            // Back buttons
+            backBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const targetPageId = e.target.dataset.target;
+                    // Special case: going back from seats needs to re-render showtimes
+                    if (targetPageId === 'showtime-page' && appState.selectedMovieId) {
+                        renderShowtimePage(appState.selectedMovieId);
+                    } else if (targetPageId === 'success-page' && appState.currentBooking) {
+                        // If going back to success, re-render QR code
+                        renderSuccessPage(); 
+                    }
+                    navigateTo(targetPageId);
+                });
+            });
+
+            // Page 3: Proceed
+            proceedBtn.addEventListener('click', onProceedClick);
+
+            // Page 4: Confirm Booking
+            confirmBookingBtn.addEventListener('click', () => {
+                // In a real app, this is where you'd call an API to finalize booking and get a real booking ID
+                console.log('Booking Confirmed:', appState);
+                renderSuccessPage(); // This will create the booking and QR code
+                navigateTo('success-page');
+            });
+            
+            // Page 5: Scan Ticket & Book Another
+            scanTicketBtn.addEventListener('click', () => {
+                // Simulate scanning the QR code, which would extract the booking ID
+                // For this simulation, we'll use the ID from the last booking
+                if (appState.currentBooking && appState.currentBooking.bookingId) {
+                    renderTicketDetailsPage(appState.currentBooking.bookingId);
+                    navigateTo('ticket-details-page');
+                } else {
+                    alert('No booking found to scan!');
+                }
+            });
+            bookAnotherBtn.addEventListener('click', resetApp);
+
+            // Page 6: New Booking from Ticket Details
+            newBookingFromTicketBtn.addEventListener('click', resetApp);
+
+
+            // --- INITIALIZATION ---
+            renderMovieGrid();
+            navigateTo('movie-selection-page'); // Show the first page
+        });
+    </script>
+
+</body>
+</html>

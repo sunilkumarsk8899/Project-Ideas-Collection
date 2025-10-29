@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Study Timetable</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load SortableJS for Drag-and-Drop -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <style>
+        /* Using Inter font */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Style for the row when a task is marked as done */
+        .task-done {
+            text-decoration: line-through;
+            opacity: 0.6;
+            background-color: #f8fafc; /* bg-slate-50 */
+        }
+        /* Style for the drag handle */
+        .drag-handle {
+            cursor: move;
+            user-select: none; /* Prevents text selection when dragging */
+            display: inline-block;
+            width: 100%;
+            text-align: center;
+        }
+        
+        /* For notification slide-in animation */
+        #notification-container > div {
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.5s ease-out;
+        }
+    </style>
+    <!-- Preload Inter font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-100 text-gray-800 p-4 md:p-8">
+
+    <!-- Notification Container -->
+    <div id="notification-container" class="fixed top-5 right-5 z-50 space-y-3 w-64">
+        <!-- Notifications will be dynamically added here -->
+    </div>
+
+    <div class="max-w-5xl mx-auto">
+        <!-- Main Card -->
+        <div class="bg-white shadow-2xl rounded-2xl overflow-hidden">
+            
+            <!-- Header -->
+            <div class="bg-indigo-700 p-6 text-white text-center">
+                <h1 class="text-3xl md:text-4xl font-bold">Interactive Study Timetable</h1>
+                <p class="text-lg text-indigo-200 mt-2">Plan, track, and reorder your tasks</p>
+            </div>
+
+            <!-- Current Date -->
+            <div class="p-4 text-center border-b border-gray-200">
+                <h2 id="current-date" class="text-xl font-semibold text-indigo-600"></h2>
+            </div>
+
+            <!-- Timetable Container -->
+            <div class="overflow-x-auto">
+                <table class="w-full min-w-full divide-y divide-gray-200">
+                    <thead class="bg-indigo-50">
+                        <tr>
+                            <th scope="col" class="px-2 py-3 md:px-4 md:py-4 text-center text-xs font-bold text-indigo-800 uppercase tracking-wider w-12">
+                                Move
+                            </th>
+                            <th scope="col" class="w-1/4 px-4 py-3 md:px-6 md:py-4 text-left text-xs font-bold text-indigo-800 uppercase tracking-wider">
+                                Time Slot
+                            </th>
+                            <th scope="col" class="w-2/4 px-4 py-3 md:px-6 md:py-4 text-left text-xs font-bold text-indigo-800 uppercase tracking-wider">
+                                Activity / Subject
+                            </th>
+                            <th scope="col" class="px-2 py-3 md:px-4 md:py-4 text-center text-xs font-bold text-indigo-800 uppercase tracking-wider w-16">
+                                Done?
+                            </th>
+                            <th scope="col" class="px-2 py-3 md:px-4 md:py-4 text-center text-xs font-bold text-indigo-800 uppercase tracking-wider w-16">
+                                Action
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200" id="timetable-body">
+                        
+                        <!-- Morning Session -->
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-2 py-4 md:px-4 text-gray-500">
+                                <span class="drag-handle" title="Drag to reorder">&#9776;</span>
+                            </td>
+                            <td class="px-4 py-4 md:px-6 whitespace-nowrap font-medium text-gray-900" contenteditable="true">6:00 AM - 6:30 AM</td>
+                            <td class="px-4 py-4 md:px-6 text-gray-700" contenteditable="true">Wake Up, Hydrate & Quick Stretch</td>
+                            <td class="px-2 py-4 md:px-4 text-center">
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                  <input type="checkbox" value="" class="sr-only peer task-toggle">
+                                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                            </td>
+                            <td class="px-2 py-4 md:px-4 text-center">
+                                <button onclick="deleteRow(this)" class="text-red-600 hover:text-red-800 font-bold text-xl" title="Delete row">
+                                    &times;
+                                </button>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-2 py-4 md:px-4 text-gray-500">
+                                <span class="drag-handle" title="Drag to reorder">&#9776;</span>
+                            </td>
+                            <td class="px-4 py-4 md:px-6 whitespace-nowrap font-medium text-gray-900" contenteditable="true">6:30 AM - 7:15 AM</td>
+                            <td class="px-4 py-4 md:px-6 text-gray-700" contenteditable="true">Morning Routine (Freshen up, Breakfast)</td>
+                            <td class="px-2 py-4 md:px-4 text-center">
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                  <input type="checkbox" value="" class="sr-only peer task-toggle">
+                                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                            </td>
+                            <td class="px-2 py-4 md:px-4 text-center">
+                                <button onclick="deleteRow(this)" class="text-red-600 hover:text-red-800 font-bold text-xl" title="Delete row">
+                                    &times;
+                                </button>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-indigo-50/50">
+                             <td class="px-2 py-4 md:px-4 text-gray-500">
+                                <span class="drag-handle" title="Drag to reorder">&#9776;</span>
+                            </td>
+                            <td class="px-4 py-4 md:px-6 whitespace-nowrap font-medium text-indigo-900" contenteditable="true">7:15 AM - 9:15 AM</td>
+                            <td class="px-4 py-4 md:px-6 font-semibold text-indigo-700" contenteditable="true">Study Session 1 (e.g., Most Difficult Subject)</td>
+                            <td class="px-2 py-4 md:px-4 text-center">
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                  <input type="checkbox" value="" class="sr-only peer task-toggle">
+                                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                            </td>
+                            <td class="px-2 py-4 md:px-4 text-center">
+                                <button onclick="deleteRow(this)" class="text-red-600 hover:text-red-800 font-bold text-xl" title="Delete row">
+                                    &times;
+                                </button>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-green-50/50">
+                             <td class="px-2 py-4 md:px-4 text-gray-500">
+                                <span class="drag-handle" title="Drag to reorder">&#9776;</span>
+                            </td>
+                            <td class="px-4 py-4 md:px-6 whitespace-nowrap font-medium text-gray-900" contenteditable="true">9:15 AM - 9:45 AM</td>
+                            <td class="px-4 py-4 md:px-6 text-green-700" contenteditable="true">Short Break (Walk, Snack, Relax)</td>
+                            <td class="px-2 py-4 md:px-4 text-center">
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                  <input type="checkbox" value="" class="sr-only peer task-toggle">
+                                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                            </td>
+                            <td class="px-2 py-4 md:px-4 text-center">
+                                <button onclick="deleteRow(this)" class="text-red-600 hover:text-red-800 font-bold text-xl" title="Delete row">
+                                    &times;
+                                </button>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-indigo-50/50">
+                             <td class="px-2 py-4 md:px-4 text-gray-500">
+                                <span class="drag-handle" title="Drag to reorder">&#9776;</span>
+                            </td>
+                            <td class="px-4 py-4 md:px-6 whitespace-nowrap font-medium text-indigo-900" contenteditable="true">9:45 AM - 11:30 AM</td>
+                            <td class="px-4 py-4 md:px-6 font-semibold text-indigo-700" contenteditable="true">Study Session 2 (e.g., Revision or Practice Problems)</td>
+                            <td class="px-2 py-4 md:px-4 text-center">
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                  <input type="checkbox" value="" class="sr-only peer task-toggle">
+                                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                            </td>
+                            <td class="px-2 py-4 md:px-4 text-center">
+                                <button onclick="deleteRow(this)" class="text-red-600 hover:text-red-800 font-bold text-xl" title="Delete row">
+                                    &times;
+                                </button>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                             <td class="px-2 py-4 md:px-4 text-gray-500">
+                                <span class="drag-handle" title="Drag to reorder">&#9776;</span>
+                            </td>
+                            <td class="px-4 py-4 md:px-6 whitespace-nowrap font-medium text-gray-900" contenteditable="true">11:30 AM - 12:00 PM</td>
+                            <td class="px-4 py-4 md:px-6 text-gray-700" contenteditable="true">Review Notes from Morning / Plan Afternoon</td>
+                            <td class="px-2 py-4 md:px-4 text-center">
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                  <input type="checkbox" value="" class="sr-only peer task-toggle">
+                                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                            </td>
+                            <td class="px-2 py-4 md:px-4 text-center">
+                                <button onclick="deleteRow(this)" class="text-red-600 hover:text-red-800 font-bold text-xl" title="Delete row">
+                                    &times;
+                                </button>
+                            </td>
+                        </tr>
+
+                        <!-- Afternoon Session -->
+                        <tr class="hover:bg-blue-50/50">
+                             <td class="px-2 py-4 md:px-4 text-gray-500">
+                                <span class="drag-handle" title="Drag to reorder">&#9776;</span>
+                            </td>
+                            <td class="px-4 py-4 md:px-6 whitespace-nowrap font-medium text-gray-900" contenteditable="true">12:00 PM - 1:00 PM</td>
+                            <td class="px-4 py-4 md:px-6 text-blue-700" contenteditable="true">Lunch Break</td>
+                            <td class="px-2 py-4 md:px-4 text-center">
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                  <input type="checkbox" value="" class="sr-only peer task-toggle">
+                                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                            </td>
+                            <td class="px-2 py-4 md:px-4 text-center">
+                                <button onclick="deleteRow(this)" class="text-red-600 hover:text-red-800 font-bold text-xl" title="Delete row">
+                                    &times;
+                                </button>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-indigo-50/50">
+                             <td class="px-2 py-4 md:px-4 text-gray-500">
+                                <span class="drag-handle" title="Drag to reorder">&#9776;</span>
+                            </td>
+                            <td class="px-4 py-4 md:px-6 whitespace-nowrap font-medium text-indigo-900" contenteditable="true">1:00 PM - 3:00 PM</td>
+                            <td class="px-4 py-4 md:px-6 font-semibold text-indigo-700" contenteditable="true">Study Session 3 (e.g., New Topic or Weaker Area)</td>
+                            <td class="px-2 py-4 md:px-4 text-center">
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                  <input type="checkbox" value="" class="sr-only peer task-toggle">
+                                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                            </td>
+                            <td class="px-2 py-4 md:px-4 text-center">
+                                <button onclick="deleteRow(this)" class="text-red-600 hover:text-red-800 font-bold text-xl" title="Delete row">
+                                    &times;
+                                </button>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-green-50/50">
+                             <td class="px-2 py-4 md:px-4 text-gray-500">
+                                <span class="drag-handle" title="Drag to reorder">&#9776;</span>
+                            </td>
+                            <td class="px-4 py-4 md:px-6 whitespace-nowrap font-medium text-gray-900" contenteditable="true">3:00 PM - 3:30 PM</td>
+                            <td class="px-4 py-4 md:px-6 text-green-700" contenteditable="true">Short Break (Snack, Listen to Music)</td>
+                            <td class="px-2 py-4 md:px-4 text-center">
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                  <input type="checkbox" value="" class="sr-only peer task-toggle">
+                                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                            </td>
+                            <td class="px-2 py-4 md:px-4 text-center">
+                                <button onclick="deleteRow(this)" class="text-red-600 hover:text-red-800 font-bold text-xl" title="Delete row">
+                                    &times;
+                                </button>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-indigo-50/50">
+                             <td class="px-2 py-4 md:px-4 text-gray-500">
+                                <span class="drag-handle" title="Drag to reorder">&#9776;</span>
+                            </td>
+                            <td class="px-4 py-4 md:px-6 whitespace-nowrap font-medium text-indigo-900" contenteditable="true">3:30 PM - 5:00 PM</td>
+                            <td class="px-4 py-4 md:px-6 font-semibold text-indigo-700" contenteditable="true">Study Session 4 (e.g., Lighter Subject or Mock Test)</td>
+                            <td class="px-2 py-4 md:px-4 text-center">
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                  <input type="checkbox" value="" class="sr-only peer task-toggle">
+                                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                            </td>
+                            <td class="px-2 py-4 md:px-4 text-center">
+                                <button onclick="deleteRow(this)" class="text-red-600 hover:text-red-800 font-bold text-xl" title="Delete row">
+                                    &times;
+                                </button>
+                            </td>
+                        </tr>
+
+                        <!-- Evening Session -->
+                        <tr class="hover:bg-green-50/50">
+                             <td class="px-2 py-4 md:px-4 text-gray-500">
+                                <span class="drag-handle" title="Drag to reorder">&#9776;</span>
+                            </td>
+                            <td class="px-4 py-4 md:px-6 whitespace-nowrap font-medium text-gray-900" contenteditable="true">5:00 PM - 6:30 PM</td>
+                            <td class="px-4 py-4 md:px-6 text-green-700" contenteditable="true">Activity Break (Exercise, Hobby, Talk to Family)</td>
+                            <td class="px-2 py-4 md:px-4 text-center">
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                  <input type="checkbox" value="" class="sr-only peer task-toggle">
+                                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                            </td>
+                            <td class="px-2 py-4 md:px-4 text-center">
+                                <button onclick="deleteRow(this)" class="text-red-600 hover:text-red-800 font-bold text-xl" title="Delete row">
+                                    &times;
+                                </button>
+                            </td>
+                        </tr>
+                         <tr class="hover:bg-gray-50">
+                             <td class="px-2 py-4 md:px-4 text-gray-500">
+                                <span class="drag-handle" title="Drag to reorder">&#9776;</span>
+                            </td>
+                            <td class="px-4 py-4 md:px-6 whitespace-nowrap font-medium text-gray-900" contenteditable="true">6:30 PM - 7:00 PM</td>
+                            <td class="px-4 py-4 md:px-6 text-gray-700" contenteditable="true">Quick Review / Tidy Study Space</td>
+                            <td class="px-2 py-4 md:px-4 text-center">
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                  <input type="checkbox" value="" class="sr-only peer task-toggle">
+                                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                            </td>
+                            <td class="px-2 py-4 md:px-4 text-center">
+                                <button onclick="deleteRow(this)" class="text-red-600 hover:text-red-800 font-bold text-xl" title="Delete row">
+                                    &times;
+                                </button>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-blue-50/50">
+                             <td class="px-2 py-4 md:px-4 text-gray-500">
+                                <span class="drag-handle" title="Drag to reorder">&#9776;</span>
+                            </td>
+                            <td class="px-4 py-4 md:px-6 whitespace-nowrap font-medium text-gray-900" contenteditable="true">7:00 PM - 8:00 PM</td>
+                            <td class="px-4 py-4 md:px-6 text-blue-700" contenteditable="true">Dinner Break</td>
+                            <td class="px-2 py-4 md:px-4 text-center">
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                  <input type="checkbox" value="" class="sr-only peer task-toggle">
+                                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                            </td>
+                            <td class="px-2 py-4 md:px-4 text-center">
+                                <button onclick="deleteRow(this)" class="text-red-600 hover:text-red-800 font-bold text-xl" title="Delete row">
+                                    &times;
+                                </button>
+_                            </td>
+                        </tr>
+                        <tr class="hover:bg-indigo-50/50">
+                             <td class="px-2 py-4 md:px-4 text-gray-500">
+                                <span class="drag-handle" title="Drag to reorder">&#9776;</span>
+                            </td>
+                            <td class="px-4 py-4 md:px-6 whitespace-nowrap font-medium text-indigo-900" contenteditable="true">8:00 PM - 9:30 PM</td>
+                            <td class="px-4 py-4 md:px-6 font-semibold text-indigo-700" contenteditable="true">Final Study Session (Review day's topics, Plan next day)</td>
+                            <td class="px-2 py-4 md:px-4 text-center">
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                  <input type="checkbox" value="" class="sr-only peer task-toggle">
+                                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                            </td>
+                            <td class="px-2 py-4 md:px-4 text-center">
+                                <button onclick="deleteRow(this)" class="text-red-600 hover:text-red-800 font-bold text-xl" title="Delete row">
+                                    &times;
+                                </button>
+                            </td>
+                        </tr>
+
+                        <!-- Wind Down -->
+                        <tr class="hover:bg-gray-50">
+                             <td class="px-2 py-4 md:px-4 text-gray-500">
+                                <span class="drag-handle" title="Drag to reorder">&#9776;</span>
+                            </td>
+                            <td class="px-4 py-4 md:px-6 whitespace-nowrap font-medium text-gray-900" contenteditable="true">9:30 PM - 10:30 PM</td>
+                            <td class="px-4 py-4 md:px-6 text-gray-700" contenteditable="true">Wind Down (No screens, Read a book, Relax)</td>
+                            <td class="px-2 py-4 md:px-4 text-center">
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                  <input type="checkbox" value="" class="sr-only peer task-toggle">
+                                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                            </td>
+                            <td class="px-2 py-4 md:px-4 text-center">
+                                <button onclick="deleteRow(this)" class="text-red-600 hover:text-red-800 font-bold text-xl" title="Delete row">
+                                    &times;
+                                </button>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                             <td class="px-2 py-4 md:px-4 text-gray-500">
+                                <span class="drag-handle" title="Drag to reorder">&#9776;</span>
+                            </td>
+                            <td class="px-4 py-4 md:px-6 whitespace-nowrap font-medium text-gray-900" contenteditable="true">10:30 PM</td>
+                            <td class="px-4 py-4 md:px-6 text-gray-700" contenteditable="true">Lights Out (Aim for 7-8 hours of sleep)</td>
+                            <td class="px-2 py-4 md:px-4 text-center">
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                  <input type="checkbox" value="" class="sr-only peer task-toggle">
+                                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                            </td>
+                            <td class="px-2 py-4 md:px-4 text-center">
+                                <button onclick="deleteRow(this)" class="text-red-600 hover:text-red-800 font-bold text-xl" title="Delete row">
+                                    &times;
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Add Row Button -->
+            <div class="p-4 flex justify-end gap-3 bg-gray-50 border-t border-gray-200">
+                <button id="add-row-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-colors duration-200">
+                    + Add Row
+                </button>
+            </div>
+
+        </div>
+
+        <!-- Study Tips Section -->
+        <div class="bg-white shadow-2xl rounded-2xl mt-8 p-6">
+            <h3 class="text-2xl font-bold text-indigo-700 mb-4">How to Use</h3>
+            <ul class="list-disc list-inside space-y-2 text-gray-700">
+                <li><strong>Drag & Drop:</strong> Click and hold the `&#9776;` icon to drag and reorder tasks. A notification will confirm the change.</li>
+                <li><strong>Mark as Done:</strong> Use the toggle switch to mark tasks complete. This will strike-through the task and prevent further editing.</li>
+                <li><strong>Edit Tasks:</strong> Click on any **time slot** or **activity** to edit the text (unless it's marked as done).</li>
+                <li><strong>Add/Delete Rows:</strong> Use the `+ Add Row` button to add new tasks and the `&times;` button to remove them.</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', (event) => {
+            // --- 1. SET CURRENT DATE ---
+            const dateElement = document.getElementById('current-date');
+            const today = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            dateElement.textContent = `Today: ${today.toLocaleDateString('en-US', options)}`;
+
+            // --- 2. ADD ROW BUTTON ---
+            document.getElementById('add-row-btn').addEventListener('click', addRow);
+            
+            // --- 3. "MARK AS DONE" (EVENT DELEGATION) ---
+            const timetableBody = document.getElementById('timetable-body');
+            timetableBody.addEventListener('change', function(e) {
+                // Check if the changed element is a checkbox
+                if (e.target.classList.contains('task-toggle')) {
+                    const row = e.target.closest('tr');
+                    const editableCells = row.querySelectorAll('[contenteditable="true"]');
+                    
+                    if (e.target.checked) {
+                        // Task is DONE
+                        row.classList.add('task-done');
+                        // Make cells non-editable
+                        editableCells.forEach(cell => {
+                            cell.setAttribute('contenteditable', 'false');
+                        });
+                        showNotification('Task marked as complete!', 'success');
+                    } else {
+                        // Task is NOT DONE
+                        row.classList.remove('task-done');
+                        // Make cells editable again
+                        editableCells.forEach(cell => {
+                            cell.setAttribute('contenteditable', 'true');
+                        });
+                        showNotification('Task marked as incomplete.', 'info');
+                    }
+                }
+            });
+
+            // --- 4. INITIALIZE DRAG-AND-DROP (SortableJS) ---
+            new Sortable(timetableBody, {
+                animation: 150, // Animation speed
+                handle: '.drag-handle', // Class of the element to use as a drag handle
+                ghostClass: 'bg-indigo-100', // Class for the placeholder row
+                onEnd: function() {
+                    // Show notification on drop
+                    showNotification('Task order updated.', 'info');
+                }
+            });
+        });
+
+        /**
+         * Deletes the table row containing the clicked button.
+         * @param {HTMLElement} button - The delete button that was clicked.
+         */
+        function deleteRow(button) {
+            const row = button.closest('tr');
+            row.remove();
+            showNotification('Row deleted successfully.', 'success');
+        }
+
+        /**
+         * Adds a new, editable row to the end of the timetable.
+         */
+        function addRow() {
+            const tableBody = document.getElementById('timetable-body');
+            const table = tableBody.closest('table');
+            const headerRow = table.querySelector('thead tr');
+            const numCols = headerRow.cells.length;
+            
+            const newRow = tableBody.insertRow(); // Insert at the end
+            newRow.className = 'hover:bg-gray-50';
+
+            // Cell 1: Drag Handle
+            const handleCell = newRow.insertCell(0);
+            handleCell.className = 'px-2 py-4 md:px-4 text-gray-500';
+            handleCell.innerHTML = '<span class="drag-handle" title="Drag to reorder">&#9776;</span>';
+
+            // Cell 2: Time Slot
+            const timeCell = newRow.insertCell(1);
+            timeCell.className = 'px-4 py-4 md:px-6 whitespace-nowrap font-medium text-gray-900';
+            timeCell.setAttribute('contenteditable', 'true');
+            timeCell.textContent = 'New Time';
+
+            // Cell 3: Activity
+            const activityCell = newRow.insertCell(2);
+            activityCell.className = 'px-4 py-4 md:px-6 text-gray-700';
+            activityCell.setAttribute('contenteditable', 'true');
+            activityCell.textContent = 'New Activity';
+
+            // Add cells for any custom columns (between Activity and Done)
+            // 4 default cols: Move, Time, Activity, Done, Action
+            const numCustomCols = numCols - 4;
+            for (let i = 0; i < numCustomCols; i++) {
+                const customCell = newRow.insertCell(3 + i);
+                customCell.className = 'px-4 py-4 md:px-6 text-gray-700';
+                customCell.setAttribute('contenteditable', 'true');
+                customCell.textContent = '...';
+            }
+
+            // Cell 4: Checkbox (at index numCols - 2)
+            const checkboxCell = newRow.insertCell(numCols - 2);
+            checkboxCell.className = 'px-2 py-4 md:px-4 text-center';
+            checkboxCell.innerHTML = `
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" value="" class="sr-only peer task-toggle">
+                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                </label>
+            `;
+
+            // Cell 5: Action (Delete Button) (at index numCols - 1)
+            const actionCell = newRow.insertCell(numCols - 1);
+            actionCell.className = 'px-2 py-4 md:px-4 text-center';
+            actionCell.innerHTML = `
+                <button onclick="deleteRow(this)" class="text-red-600 hover:text-red-800 font-bold text-xl" title="Delete row">
+                    &times;
+                </button>
+            `;
+            
+            showNotification('New row added.', 'success');
+        }
+
+        /**
+         * Shows a toast notification on the screen.
+         * @param {string} message - The message to display.
+         * @param {string} [type='success'] - The type of notification ('success', 'danger', 'info').
+         */
+        function showNotification(message, type = 'success') {
+            const container = document.getElementById('notification-container');
+            
+            const notif = document.createElement('div');
+            let bgColor, borderColor, textColor;
+
+            switch(type) {
+                case 'danger':
+                    bgColor = 'bg-red-100';
+                    borderColor = 'border-red-400';
+                    textColor = 'text-red-700';
+                    break;
+                case 'info':
+                    bgColor = 'bg-blue-100';
+                    borderColor = 'border-blue-400';
+                    textColor = 'text-blue-700';
+                    break;
+                case 'success':
+                default:
+                    bgColor = 'bg-green-100';
+                    borderColor = 'border-green-400';
+                    textColor = 'text-green-700';
+            }
+
+            notif.className = `${bgColor} border-l-4 ${borderColor} ${textColor} p-4 rounded-md shadow-lg transition-all duration-500 transform ease-out`;
+            notif.setAttribute('role', 'alert');
+            notif.innerHTML = `<p class="font-medium">${message}</p>`;
+
+            container.appendChild(notif);
+
+            // Slide in
+            setTimeout(() => {
+                notif.classList.add('opacity-100', 'translate-x-0');
+            }, 10); // Start transition after append
+
+            // Auto-remove
+            setTimeout(() => {
+                // Slide out
+                notif.classList.add('opacity-0', 'translate-x-10');
+                // Remove from DOM after transition
+                setTimeout(() => {
+                    notif.remove();
+                }, 500); // Match transition duration
+            }, 3000); // 3 seconds visible
+        }
+    </script>
+
+</body>
+</html>
+
+
+
+
+
+
+
+
