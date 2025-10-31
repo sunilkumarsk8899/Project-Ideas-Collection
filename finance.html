@@ -1,0 +1,584 @@
+<?php
+// Start the session at the very beginning.
+session_start();
+
+// --- DATABASE CONFIGURATION ---
+// !!! IMPORTANT: Fill in your MySQL database details here !!!
+define('DB_HOST', '127.0.0.1'); // Or 'localhost'
+define('DB_NAME', 'finance_tracker'); // The database name you created
+define('DB_USER', 'root'); // Your MySQL username
+define('DB_PASS', ''); // Your MySQL password
+// ------------------------------
+
+/**
+ * Connects to the database using PDO.
+ * Returns the PDO connection object or null on failure.
+ */
+function get_db_connection() {
+    $dsn = 'mysql:host=' . DB_HOST . ';dbname=' . DB_NAME . ';charset=utf8';
+    $options = [
+        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES   => false,
+    ];
+    try {
+        return new PDO($dsn, DB_USER, DB_PASS, $options);
+    } catch (PDOException $e) {
+        // In a real app, you'd log this error, not just display it.
+        error_log($e->getMessage());
+        return null;
+    }
+}
+
+/**
+ * Redirects the user to a different page.
+ */
+function redirect($page) {
+    header("Location: index.php?page=$page");
+    exit;
+}
+
+/**
+ * Checks if the user is logged in.
+ * If not, redirects to the login page.
+ */
+function check_auth() {
+    if (!isset($_SESSION['user_id'])) {
+        redirect('login');
+    }
+}
+
+// --- PAGE ROUTING & LOGIC ---
+
+$page = $_GET['page'] ?? 'dashboard'; // Default page is dashboard
+$pdo = get_db_connection();
+$error_message = '';
+$success_message = '';
+
+if (!$pdo && $page !== 'db_error') {
+    // If DB connection fails, show a specific error page
+    $page = 'db_error';
+}
+
+switch ($page) {
+    case 'login':
+        // Handle login form submission
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $username = $_POST['username'] ?? '';
+            $password = $_POST['password'] ?? '';
+
+            if (empty($username) || empty($password)) {
+                $error_message = 'Please fill in all fields.';
+            } else {
+                $stmt = $pdo->prepare('SELECT id, password FROM users WHERE username = ?');
+                $stmt->execute([$username]);
+                $user = $stmt->fetch();
+
+                if ($user && password_verify($password, $user['password'])) {
+                    // Password is correct! Start the session.
+                    $_SESSION['user_id'] = $user['id'];
+                    $_SESSION['username'] = $username;
+                    redirect('dashboard');
+                } else {
+                    $error_message = 'Invalid username or password.';
+                }
+            }
+        }
+        break;
+
+    case 'register':
+        // Handle registration form submission
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $username = $_POST['username'] ?? '';
+            $password = $_POST['password'] ?? '';
+            $password_confirm = $_POST['password_confirm'] ?? '';
+
+            if (empty($username) || empty($password)) {
+                $error_message = 'Please fill in all fields.';
+            } elseif ($password !== $password_confirm) {
+                $error_message = 'Passwords do not match.';
+            } elseif (strlen($password) < 8) {
+                $error_message = 'Password must be at least 8 characters long.';
+            } else {
+                // Check if username already exists
+                $stmt = $pdo->prepare('SELECT id FROM users WHERE username = ?');
+                $stmt->execute([$username]);
+                if ($stmt->fetch()) {
+                    $error_message = 'Username already taken.';
+                } else {
+                    // Create new user
+                    $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+                    $stmt = $pdo->prepare('INSERT INTO users (username, password) VALUES (?, ?)');
+                    if ($stmt->execute([$username, $hashed_password])) {
+                        $success_message = 'Registration successful! Please log in.';
+                        // You could also log them in directly:
+                        // $_SESSION['user_id'] = $pdo->lastInsertId();
+                        // $_SESSION['username'] = $username;
+                        // redirect('dashboard');
+                    } else {
+                        $error_message = 'An error occurred. Please try again.';
+                    }
+                }
+            }
+        }
+        break;
+
+    case 'logout':
+        session_unset();
+        session_destroy();
+        redirect('login');
+        break;
+
+    case 'add_expense':
+        check_auth();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $user_id = $_SESSION['user_id'];
+            $month = $_POST['month'];
+            $year = $_POST['year'];
+
+            // Prepare data for insertion
+            $data = [
+                'user_id' => $user_id,
+                'month' => (int)$month,
+                'year' => (int)$year,
+                'petrol' => (float)($_POST['petrol'] ?? 0),
+                'kitchen_food' => (float)($_POST['kitchen_food'] ?? 0),
+                'out_food' => (float)($_POST['out_food'] ?? 0),
+                'clothes' => (float)($_POST['clothes'] ?? 0),
+                'wifi' => (float)($_POST['wifi'] ?? 0),
+                'home' => (float)($_POST['home'] ?? 0),
+                'milk' => (float)($_POST['milk'] ?? 0),
+                'saving1' => (float)($_POST['saving1'] ?? 0),
+                'saving2' => (float)($_POST['saving2'] ?? 0),
+                'sip' => (float)($_POST['sip'] ?? 0),
+                'insurance' => (float)($_POST['insurance'] ?? 0),
+                'protein' => (float)($_POST['protein'] ?? 0),
+                'creatine' => (float)($_POST['creatine'] ?? 0),
+            ];
+
+            // Use INSERT ... ON DUPLICATE KEY UPDATE to snapshot or update the month
+            $sql = "INSERT INTO expenses (user_id, month, year, petrol, kitchen_food, out_food, clothes, wifi, home, milk, saving1, saving2, sip, insurance, protein, creatine)
+                    VALUES (:user_id, :month, :year, :petrol, :kitchen_food, :out_food, :clothes, :wifi, :home, :milk, :saving1, :saving2, :sip, :insurance, :protein, :creatine)
+                    ON DUPLICATE KEY UPDATE
+                    petrol = VALUES(petrol), kitchen_food = VALUES(kitchen_food), out_food = VALUES(out_food), clothes = VALUES(clothes),
+                    wifi = VALUES(wifi), home = VALUES(home), milk = VALUES(milk), saving1 = VALUES(saving1), saving2 = VALUES(saving2),
+                    sip = VALUES(sip), insurance = VALUES(insurance), protein = VALUES(protein), creatine = VALUES(creatine)";
+
+            try {
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute($data);
+                $_SESSION['success_message'] = 'Expense record saved successfully for ' . date('F', mktime(0, 0, 0, $month, 10)) . ' ' . $year . '.';
+            } catch (PDOException $e) {
+                $_SESSION['error_message'] = 'Error saving record: ' . $e->getMessage();
+            }
+            redirect('dashboard');
+        }
+        break;
+        
+    case 'delete_expense':
+        check_auth();
+        $expense_id = $_GET['id'] ?? 0;
+        $user_id = $_SESSION['user_id'];
+        
+        if ($expense_id > 0) {
+            try {
+                // Verify the expense belongs to the logged-in user before deleting
+                $stmt = $pdo->prepare("DELETE FROM expenses WHERE id = ? AND user_id = ?");
+                $stmt->execute([$expense_id, $user_id]);
+                
+                if ($stmt->rowCount() > 0) {
+                     $_SESSION['success_message'] = 'Expense record deleted successfully.';
+                } else {
+                     $_SESSION['error_message'] = 'Could not delete record. It may not exist or not belong to you.';
+                }
+            } catch (PDOException $e) {
+                 $_SESSION['error_message'] = 'Error deleting record: ' . $e->getMessage();
+            }
+        } else {
+            $_SESSION['error_message'] = 'Invalid record ID.';
+        }
+        redirect('dashboard');
+        break;
+
+    case 'dashboard':
+        check_auth();
+        // Fetch expense records for the user
+        $user_id = $_SESSION['user_id'];
+        $stmt = $pdo->prepare("SELECT * FROM expenses WHERE user_id = ? ORDER BY year DESC, month DESC");
+        $stmt->execute([$user_id]);
+        $expense_records = $stmt->fetchAll();
+        
+        // Check for flash messages from session
+        if(isset($_SESSION['success_message'])) {
+            $success_message = $_SESSION['success_message'];
+            unset($_SESSION['success_message']);
+        }
+        if(isset($_SESSION['error_message'])) {
+            $error_message = $_SESSION['error_message'];
+            unset($_SESSION['error_message']);
+        }
+        break;
+
+    case 'db_error':
+        // This case is handled by the HTML output function
+        break;
+
+    default:
+        // Handle 404 Not Found
+        http_response_code(404);
+        $page = '404';
+        break;
+}
+
+/**
+ * Renders the HTML for the page header.
+ */
+function render_header($title) {
+    $is_logged_in = isset($_SESSION['user_id']);
+    $username = $_SESSION['username'] ?? '';
+?>
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo htmlspecialchars($title); ?> - Finance Tracker</title>
+    <!-- Load Tailwind CSS from CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Simple transition for message boxes */
+        .fade-out {
+            opacity: 1;
+            transition: opacity 0.5s ease-out;
+        }
+        .fade-out.hidden {
+            opacity: 0;
+        }
+        /* Custom styles for expense table */
+        .expense-table th, .expense-table td {
+            @apply px-3 py-2 text-sm;
+        }
+        .expense-table th {
+            @apply font-semibold text-left bg-gray-100;
+        }
+        .expense-table td {
+            @apply border-t border-gray-200;
+        }
+        .expense-table .total-col {
+            @apply font-bold text-blue-600;
+        }
+        .expense-table .savings-col {
+            @apply font-bold text-green-600;
+        }
+    </style>
+</head>
+<body class="h-full font-sans antialiased text-gray-800">
+    <div class="min-h-full">
+        <nav class="bg-gray-800">
+            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                <div class="flex h-16 items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <!-- You can replace this with an SVG logo -->
+                            <span class="text-2xl font-bold text-white">📈</span>
+                        </div>
+                        <div class="hidden md:block">
+                            <div class="ml-10 flex items-baseline space-x-4">
+                                <?php if ($is_logged_in): ?>
+                                    <a href="index.php?page=dashboard" class="bg-gray-900 text-white rounded-md px-3 py-2 text-sm font-medium">Dashboard</a>
+                                <?php else: ?>
+                                    <a href="index.php?page=login" class="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium">Login</a>
+                                    <a href="index.php?page=register" class="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium">Register</a>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                    <?php if ($is_logged_in): ?>
+                    <div class="hidden md:block">
+                        <div class="ml-4 flex items-center md:ml-6">
+                            <span class="text-gray-400 mr-3">Welcome, <?php echo htmlspecialchars($username); ?>!</span>
+                            <a href="index.php?page=logout" class="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700">Logout</a>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </nav>
+
+        <header class="bg-white shadow-sm">
+            <div class="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+                <h1 class="text-xl font-semibold tracking-tight text-gray-900"><?php echo htmlspecialchars($title); ?></h1>
+            </div>
+        </header>
+
+        <main>
+            <div class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
+                <!-- Global error/success message box -->
+                <?php if (!empty($error_message)): ?>
+                    <div id="message-box" class="fade-out mb-4 rounded-md bg-red-100 p-4 text-sm text-red-700">
+                        <?php echo htmlspecialchars($error_message); ?>
+                    </div>
+                <?php endif; ?>
+                <?php if (!empty($success_message)): ?>
+                    <div id="message-box" class="fade-out mb-4 rounded-md bg-green-100 p-4 text-sm text-green-700">
+                        <?php echo htmlspecialchars($success_message); ?>
+                    </div>
+                <?php endif; ?>
+<?php
+}
+
+/**
+ * Renders the HTML for the page footer.
+ */
+function render_footer() {
+?>
+            </div>
+        </main>
+    </div>
+    <script>
+        // Auto-hide message boxes after 5 seconds
+        const messageBox = document.getElementById('message-box');
+        if (messageBox) {
+            setTimeout(() => {
+                messageBox.classList.add('hidden');
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
+<?php
+}
+
+/**
+ * Renders the content for a specific page.
+ */
+function render_page_content($page, $pdo, $data = []) {
+    extract($data); // Extract variables for use in the page
+    
+    switch ($page) {
+        case 'login':
+        case 'register':
+            $is_login = $page === 'login';
+?>
+            <div class="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8" style="margin-top: -50px;">
+                <div class="sm:mx-auto sm:w-full sm:max-w-sm">
+                    <h2 class="mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">
+                        <?php echo $is_login ? 'Sign in to your account' : 'Create a new account'; ?>
+                    </h2>
+                </div>
+
+                <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
+                    <form class="space-y-6" action="index.php?page=<?php echo $page; ?>" method="POST">
+                        <div>
+                            <label for="username" class="block text-sm font-medium leading-6 text-gray-900">Username</label>
+                            <div class="mt-2">
+                                <input id="username" name="username" type="text" autocomplete="username" required class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 px-2">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="password" class="block text-sm font-medium leading-6 text-gray-900">Password</label>
+                            <div class="mt-2">
+                                <input id="password" name="password" type="password" autocomplete="<?php echo $is_login ? 'current-password' : 'new-password'; ?>" required class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 px-2">
+                            </div>
+                        </div>
+                        
+                        <?php if (!$is_login): ?>
+                        <div>
+                            <label for="password_confirm" class="block text-sm font-medium leading-6 text-gray-900">Confirm Password</label>
+                            <div class="mt-2">
+                                <input id="password_confirm" name="password_confirm" type="password" autocomplete="new-password" required class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 px-2">
+                            </div>
+                        </div>
+                        <?php endif; ?>
+
+                        <div>
+                            <button type="submit" class="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+                                <?php echo $is_login ? 'Sign in' : 'Register'; ?>
+                            </button>
+                        </div>
+                    </form>
+
+                    <p class="mt-10 text-center text-sm text-gray-500">
+                        <?php if ($is_login): ?>
+                            Not a member?
+                            <a href="index.php?page=register" class="font-semibold leading-6 text-indigo-600 hover:text-indigo-500">Register here</a>
+                        <?php else: ?>
+                            Already have an account?
+                            <a href="index.php?page=login" class="font-semibold leading-6 text-indigo-600 hover:text-indigo-500">Sign in here</a>
+                        <?php endif; ?>
+                    </p>
+                </div>
+            </div>
+<?php
+            break;
+
+        case 'dashboard':
+            $categories = [
+                'Expenses' => ['petrol', 'kitchen_food', 'out_food', 'clothes', 'wifi', 'home', 'milk', 'insurance'],
+                'Gym' => ['protein', 'creatine'],
+                'Savings' => ['saving1', 'saving2', 'sip'],
+            ];
+            $current_month = date('m');
+            $current_year = date('Y');
+?>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Left Column: Add Expense Form -->
+                <div class="lg:col-span-1">
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="text-lg font-semibold mb-4 border-b pb-2">Save Monthly Snapshot</h3>
+                        <form action="index.php?page=add_expense" method="POST" class="space-y-4">
+                            <!-- Month/Year Selector -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label for="month" class="block text-sm font-medium text-gray-700">Month</label>
+                                    <select id="month" name="month" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                        <?php for ($m = 1; $m <= 12; $m++): ?>
+                                            <option value="<?php echo $m; ?>" <?php echo ($m == $current_month) ? 'selected' : ''; ?>>
+                                                <?php echo date('F', mktime(0, 0, 0, $m, 10)); ?>
+                                            </option>
+                                        <?php endfor; ?>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="year" class="block text-sm font-medium text-gray-700">Year</label>
+                                    <input type="number" name="year" id="year" value="<?php echo $current_year; ?>" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-2 py-1.5" min="2000" max="2100">
+                                </div>
+                            </div>
+                            
+                            <!-- Category Sections -->
+                            <?php foreach ($categories as $group_name => $items): ?>
+                            <fieldset class="border-t border-gray-200 pt-4">
+                                <legend class="text-md font-semibold text-gray-900 mb-2"><?php echo $group_name; ?></legend>
+                                <div class="space-y-3">
+                                    <?php foreach ($items as $item): ?>
+                                    <div>
+                                        <label for="<?php echo $item; ?>" class="block text-sm font-medium text-gray-700 capitalize"><?php echo str_replace('_', ' ', $item); ?></label>
+                                        <div class="mt-1 relative rounded-md shadow-sm">
+                                            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                                <span class="text-gray-500 sm:text-sm">₹</span>
+                                            </div>
+                                            <input type="number" step="0.01" min="0" name="<?php echo $item; ?>" id="<?php echo $item; ?>" class="block w-full rounded-md border-gray-300 pl-7 pr-2 py-1.5 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="0.00">
+                                        </div>
+                                    </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </fieldset>
+                            <?php endforeach; ?>
+
+                            <div>
+                                <button type="submit" class="w-full flex justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
+                                    Save Snapshot
+                                </button>
+                                <p class="text-xs text-gray-500 mt-2 text-center">Note: Saving for a month that already exists will overwrite it.</p>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Right Column: Expense History -->
+                <div class="lg:col-span-2">
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="text-lg font-semibold mb-4 border-b pb-2">My Snapshot History</h3>
+                        <?php if (empty($expense_records)): ?>
+                            <p class="text-gray-500">You have not saved any expense snapshots yet. Use the form to add your first one.</p>
+                        <?php else: ?>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full expense-table">
+                                <thead class="border-b border-gray-300">
+                                    <tr>
+                                        <th>Period</th>
+                                        <th>Total Expenses</th>
+                                        <th>Total Savings</th>
+                                        <!-- Add more columns if you want to see details -->
+                                        <!-- <th>Petrol</th> -->
+                                        <!-- <th>Protein</th> -->
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($expense_records as $record): ?>
+                                        <?php $month_name = date('F', mktime(0, 0, 0, $record['month'], 10)); ?>
+                                        <tr>
+                                            <td class="font-medium"><?php echo htmlspecialchars($month_name . ' ' . $record['year']); ?></td>
+                                            <td class="total-col">₹<?php echo number_format($record['total_expenses'], 2); ?></td>
+                                            <td class="savings-col">₹<?php echo number_format($record['total_savings'], 2); ?></td>
+                                            <!-- <td>₹<?php //echo number_format($record['petrol'], 2); ?></td> -->
+                                            <!-- <td>₹<?php //echo number_format($record['protein'], 2); ?></td> -->
+                                            <td>
+                                                <a href="index.php?page=delete_expense&id=<?php echo $record['id']; ?>" 
+                                                   class="text-red-600 hover:text-red-800 text-xs"
+                                                   onclick="return confirm('Are you sure you want to delete the record for <?php echo $month_name . ' ' . $record['year']; ?>? This cannot be undone.');">
+                                                   Delete
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+<?php
+            break;
+
+        case 'db_error':
+?>
+            <div class="rounded-md bg-red-100 p-4">
+                <h3 class="text-lg font-medium text-red-800">Database Connection Error</h3>
+                <div class="mt-2 text-sm text-red-700">
+                    <p>The application could not connect to the database. Please check the following:</p>
+                    <ul class="list-disc space-y-1 pl-5 mt-2">
+                        <li>Ensure your MySQL server (e.g., in XAMPP or MAMP) is running.</li>
+                        <li>Verify the database credentials (DB_HOST, DB_NAME, DB_USER, DB_PASS) at the top of <strong>index.php</strong> are correct.</li>
+                        <li>Make sure the database '<?php echo DB_NAME; ?>' exists and you have imported the <strong>schema.sql</strong> file.</li>
+                    </ul>
+                </div>
+            </div>
+<?php
+            break;
+
+        case '404':
+?>
+            <div class="text-center">
+                <h2 class="text-6xl font-bold text-indigo-600">404</h2>
+                <p class="text-2xl font-semibold text-gray-800 mt-4">Page Not Found</p>
+                <p class="text-gray-600 mt-2">Sorry, the page you are looking for does not exist.</p>
+                <a href="index.php?page=dashboard" class="mt-6 inline-block rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
+                    Go to Dashboard
+                </a>
+            </div>
+<?php
+            break;
+    }
+}
+
+
+// --- HTML RENDERING ---
+
+// Set the title based on the page
+$title_map = [
+    'login' => 'Login',
+    'register' => 'Register',
+    'dashboard' => 'Dashboard',
+    'db_error' => 'Database Error',
+    '404' => 'Not Found',
+];
+$title = $title_map[$page] ?? 'Finance Tracker';
+
+// Render the header
+render_header($title);
+
+// Render the main page content
+$data_to_pass = [
+    'expense_records' => $expense_records ?? [],
+    // Add any other data the page functions might need
+];
+render_page_content($page, $pdo, $data_to_pass);
+
+// Render the footer
+render_footer();
+
+?>
