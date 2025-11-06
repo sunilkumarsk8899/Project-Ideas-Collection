@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Resizer & Compressor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: #f0f2f5; /* Lighter, modern background */
+            padding: 20px;
+        }
+
+        /* Wrapper controls the "active" state */
+        .wrapper {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 450px;
+            background: #fff;
+            border-radius: 16px; /* Slightly more rounded */
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08); /* Softer, deeper shadow */
+            transition: all 0.3s ease;
+        }
+        
+        .container:hover {
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12); /* Subtle hover effect */
+        }
+
+        /* Upload Box */
+        .upload-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed #b3a2ff;
+            border-radius: 12px;
+            padding: 40px 30px; /* More vertical padding */
+            text-align: center;
+            cursor: pointer;
+            transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+        }
+
+        .upload-box.dragover {
+            background: #f7f5ff;
+            border-color: #8a6fff;
+            transform: translateY(-3px); /* Lift effect */
+        }
+
+        .upload-box svg {
+            width: 60px; /* Larger icon */
+            height: 60px;
+            stroke: #8a6fff;
+            margin-bottom: 20px; /* More space */
+        }
+
+        .upload-box p {
+            font-size: 18px; /* Larger text */
+            color: #555;
+            font-weight: 500;
+        }
+
+        /* Main Controls Visibility */
+        .main-controls {
+            display: none;
+            margin-top: 30px; /* More space */
+        }
+        
+        .wrapper.active .main-controls {
+            display: block;
+        }
+
+        /* Input and Select Styles */
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px; /* Space between control rows */
+        }
+
+        .controls .column {
+            flex: 1; /* Distribute space evenly */
+        }
+        
+        .controls .column.half {
+             flex: 2; /* 2/3 width for target size input */
+        }
+        
+        .controls .column.third {
+             flex: 1; /* 1/3 width for target unit select */
+        }
+
+        .controls label {
+            font-size: 14px;
+            color: #444;
+            margin-bottom: 8px; /* More space below label */
+            display: block;
+            font-weight: 500;
+        }
+
+        .controls input[type="number"],
+        .controls select {
+            width: 100%;
+            padding: 12px; /* More padding */
+            border: 1px solid #ddd;
+            border-radius: 8px; /* More rounded */
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            background: #fff;
+        }
+
+        .controls input[type="number"]:focus,
+        .controls select:focus {
+            border-color: #8a6fff;
+            box-shadow: 0 0 0 3px rgba(138, 111, 255, 0.2); /* Focus glow */
+        }
+        
+        .controls select {
+            appearance: none; /* Remove default select arrow */
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            padding-right: 30px; /* Make space for custom arrow */
+        }
+
+        /* General Options (checkboxes) */
+        .options {
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px; /* Consistent spacing */
+        }
+
+        .options > label { /* Direct children labels */
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-size: 16px;
+            color: #333;
+        }
+
+        /* Custom Toggle Switch for Checkboxes */
+        .options input[type="checkbox"] {
+            display: none; /* Hide default checkbox */
+        }
+
+        .options input[type="checkbox"] + span.toggle-switch {
+            width: 40px;
+            height: 22px;
+            background-color: #ccc;
+            border-radius: 11px;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            flex-shrink: 0; /* Prevent switch from shrinking */
+            margin-right: 12px; /* Space between switch and text */
+        }
+
+        .options input[type="checkbox"] + span.toggle-switch::after {
+            content: '';
+            width: 18px;
+            height: 18px;
+            background-color: #fff;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        .options input[type="checkbox"]:checked + span.toggle-switch {
+            background-color: #8a6fff;
+        }
+
+        .options input[type="checkbox"]:checked + span.toggle-switch::after {
+            transform: translateX(18px);
+        }
+
+        /* Custom Radio Buttons */
+        .quality-radio-group label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-size: 15px;
+            color: #444;
+            font-weight: normal; /* Override controls label style */
+        }
+
+        .quality-radio-group input[type="radio"] {
+            display: none; /* Hide default radio */
+        }
+
+        .quality-radio-group input[type="radio"] + span.radio-custom {
+            width: 18px;
+            height: 18px;
+            border: 2px solid #ccc;
+            border-radius: 50%;
+            margin-right: 8px;
+            position: relative;
+            flex-shrink: 0;
+            transition: all 0.2s ease;
+        }
+
+        .quality-radio-group input[type="radio"] + span.radio-custom::after {
+            content: '';
+            width: 10px;
+            height: 10px;
+            background: #8a6fff;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            transition: transform 0.2s ease;
+        }
+
+        .quality-radio-group input[type="radio"]:checked + span.radio-custom {
+            border-color: #8a6fff;
+        }
+
+        .quality-radio-group input[type="radio"]:checked + span.radio-custom::after {
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        /* Section Specific Styles */
+        .option-section {
+            margin-top: 25px; /* Consistent spacing for sections */
+            padding-top: 25px;
+            border-top: 1px solid #eee; /* Separator line */
+        }
+
+        .option-section.disabled {
+            opacity: 0.6;
+            pointer-events: none;
+            user-select: none; /* Prevent text selection */
+        }
+
+        .quality-controls-container {
+            display: none; /* Hidden by default */
+        }
+        
+        .quality-radio-group {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px; /* Space below radio group */
+        }
+        
+        .quality-target-size-box {
+            display: none; /* Hidden by default */
+        }
+
+        /* Download Button */
+        .download-btn {
+            width: 100%;
+            padding: 15px;
+            background: #8a6fff; /* Brand color */
+            color: white;
+            border: none;
+            border-radius: 10px; /* Consistent rounding */
+            font-size: 18px; /* Larger text */
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 30px; /* More space */
+            transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(138, 111, 255, 0.4); /* Subtle button shadow */
+        }
+
+        .download-btn:hover {
+            background: #7a5ff0; /* Slightly darker on hover */
+            transform: translateY(-2px); /* Lift effect */
+            box-shadow: 0 6px 20px rgba(138, 111, 255, 0.5);
+        }
+
+        .download-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 10px rgba(138, 111, 255, 0.3);
+        }
+
+        /* Image Preview Area */
+        .img-cards {
+            display: none;
+            flex-wrap: wrap;
+            gap: 20px; /* Increased gap */
+            justify-content: center;
+            width: 100%;
+            max-width: 940px;
+            margin-top: 40px; /* More space below main card */
+        }
+
+        .wrapper.active .img-cards {
+            display: flex;
+        }
+
+        .img-container {
+            position: relative;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            background: #fff;
+            transition: all 0.2s ease;
+        }
+        
+        .img-container:hover {
+            border-color: #b3a2ff;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        .responsive-img {
+            max-width: 200px;
+            max-height: 200px;
+            width: auto;
+            height: auto;
+            object-fit: cover;
+            display: block;
+        }
+
+        .delete-button {
+            position: absolute;
+            top: 8px; /* More space from corner */
+            right: 8px;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 28px; /* Slightly larger */
+            height: 28px;
+            font-size: 16px; /* Larger X */
+            font-weight: bold;
+            cursor: pointer;
+            display: grid;
+            place-items: center;
+            line-height: 1;
+            transition: background 0.2s, transform 0.2s;
+        }
+
+        .delete-button:hover {
+            background: rgba(255, 0, 0, 0.7);
+            transform: scale(1.1);
+        }
+
+        /* Progress Indicator Style */
+        #progressIndicator {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.85); /* Darker, more prominent */
+            color: white;
+            padding: 12px 25px; /* More padding */
+            border-radius: 10px;
+            font-size: 16px;
+            z-index: 1000;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        .quality-percentage-box select#quality-select {
+    padding: 12px;
+    width: 84%;
+    border-radius: 5px;
+}
+        h1.main-title {
+            font-size: 2.25rem; /* 36px */
+            font-weight: 700;
+            color: #4a3f9a; /* Darker purple */
+            text-align: center;
+            margin-bottom: 30px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        .options label input#ratio {
+    display: block;
+        margin: 0px 10px 0 0;
+}
+    </style>
+</head>
+<body>
+
+    <div class="wrapper">
+        <h1 class="main-title">Ultimate Image Resizer & Compressor</h1>
+        <!-- Main Application Card --><div class="container">
+            <!-- File Upload Area --><div class="upload-box">
+                <!-- Upload Icon SVG --><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <p>Browse or Drag Files to Upload</p>
+                <input class="file-input" type="file" multiple hidden>
+            </div>
+
+            <!-- Controls, Options, and Download Button --><div class="main-controls">
+
+                <!-- Main Toggles for features --><div class="options">
+                    <label for="resize">
+                        <input type="checkbox" id="resize" class="resize-toggle">
+                        <span class="toggle-switch"></span>
+                        Resize Image
+                    </label>
+                    <label for="quality">
+                        <input type="checkbox" id="quality" class="quality-toggle">
+                        <span class="toggle-switch"></span>
+                        Quality Settings
+                    </label>
+                </div>
+
+                <!-- Resizing Controls --><div class="option-section resize-controls">
+                    <!-- Width and Height Inputs --><div class="controls">
+                        <div class="column">
+                            <label for="width">Width</label>
+                            <input type="number" id="width" class="width">
+                        </div>
+                        <div class="column">
+                            <label for="height">Height</label>
+                            <input type="number" id="height" class="height">
+                        </div>
+                    </div>
+
+                    <!-- Aspect Ratio Option --><div class="options">
+                        <label for="ratio">
+                            <input type="checkbox" id="ratio" class="ratio">
+                            <span class="checkbox-custom"></span>
+                            Lock aspect ratio
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Quality Controls --><div class="option-section quality-controls-container">
+                    <!-- Radio buttons to choose mode --><div class="quality-radio-group">
+                        <label>
+                            <input type="radio" name="quality-mode" value="percentage" checked>
+                            <span class="radio-custom"></span>
+                            By Percentage
+                        </label>
+                        <label>
+                            <input type="radio" name="quality-mode" value="target">
+                            <span class="radio-custom"></span>
+                            By Target Size
+                        </label>
+                    </div>
+                    
+                    <!-- Percentage Dropdown Box --><div class="quality-percentage-box">
+                        <label for="quality-select">Quality:</label>
+                        <select id="quality-select">
+                            <option value="1.0">100% (Best)</option>
+                            <option value="0.9" selected>90% (High)</option>
+                            <option value="0.7">70% (Medium)</option>
+                            <option value="0.5">50% (Low)</option>
+                            <option value="0.3">30% (Very Low)</option>
+                        </select>
+                    </div>
+
+                    <!-- Target Size Box --><div class="quality-target-size-box">
+                         <div class="controls">
+                            <div class="column half">
+                                <label for="target-size">Target Size</label>
+                                <input type="number" id="target-size" value="100">
+                            </div>
+                             <div class="column third">
+                                <label for="target-unit">Unit</label>
+                                <select id="target-unit">
+                                    <option value="KB" selected>KB</option>
+                                    <option value="MB">MB</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- Download Button --><button class="download-btn">DOWNLOAD IMAGE</button>
+            </div>
+        </div>
+
+        <!-- Image Preview Area --><div class="img-cards">
+            <!-- Uploaded images will be added here --></div>
+    </div>
+
+    <script>
+        // --- DOM Element Selection ---
+        const uploadBox = document.querySelector(".upload-box");
+        const fileInput = uploadBox.querySelector("input");
+        const previewImgs = document.querySelector('.img-cards');
+        const widthInput = document.querySelector(".width");
+        const heightInput = document.querySelector(".height");
+        const ratioInput = document.querySelector(".ratio");
+        const downloadBtn = document.querySelector(".download-btn");
+        
+        // --- Feature Toggles and Controls ---
+        const resizeToggle = document.querySelector(".resize-toggle");
+        const resizeControls = document.querySelector(".resize-controls");
+        
+        const qualityToggle = document.querySelector(".quality-toggle");
+        const qualityControlsContainer = document.querySelector(".quality-controls-container");
+        
+        const qualityModePercentage = document.querySelector('input[name="quality-mode"][value="percentage"]');
+        const qualityModeTarget = document.querySelector('input[name="quality-mode"][value="target"]');
+        
+        const qualityPercentageBox = document.querySelector(".quality-percentage-box");
+        const qualityTargetSizeBox = document.querySelector(".quality-target-size-box");
+        
+        const qualitySelect = document.getElementById("quality-select");
+        const targetSizeInput = document.getElementById("target-size");
+        const targetUnitInput = document.getElementById("target-unit");
+
+        let ogImageRatio; // Stores the original aspect ratio of the first uploaded image
+
+        // --- Default Settings on Load ---
+        document.addEventListener('DOMContentLoaded', () => {
+            ratioInput.checked = true; // "Lock aspect ratio" checked by default
+            resizeToggle.checked = true; // "Resize Image" toggle ON by default
+            // Ensure resize controls are enabled initially
+            resizeControls.classList.remove('disabled');
+
+            qualityToggle.checked = false; // "Quality Settings" toggle OFF by default
+            qualityControlsContainer.style.display = 'none'; // Hide quality options by default
+
+            // Default to "By Percentage" quality mode if quality settings are enabled
+            qualityModePercentage.checked = true;
+            qualityPercentageBox.style.display = 'block';
+            qualityTargetSizeBox.style.display = 'none';
+        });
+
+        // --- Event Listeners ---
+
+        /** Toggles the enabled/disabled state and appearance of resize controls. */
+        resizeToggle.addEventListener('change', () => {
+            if (resizeToggle.checked) {
+                resizeControls.classList.remove('disabled');
+            } else {
+                resizeControls.classList.add('disabled');
+            }
+        });
+        
+        /** Toggles the visibility of the main quality settings container. */
+        qualityToggle.addEventListener('change', () => {
+            qualityControlsContainer.style.display = qualityToggle.checked ? 'block' : 'none';
+            // When quality settings are enabled, ensure one of the sub-options is visible
+            if (qualityToggle.checked) {
+                if (qualityModePercentage.checked) {
+                    qualityPercentageBox.style.display = 'block';
+                    qualityTargetSizeBox.style.display = 'none';
+                } else if (qualityModeTarget.checked) {
+                    qualityTargetSizeBox.style.display = 'block';
+                    qualityPercentageBox.style.display = 'none';
+                }
+            }
+        });
+
+        /** Switches the visible quality control sub-section to "By Percentage". */
+        qualityModePercentage.addEventListener('change', () => {
+            if (qualityModePercentage.checked) {
+                qualityPercentageBox.style.display = 'block';
+                qualityTargetSizeBox.style.display = 'none';
+            }
+        });
+        
+        /** Switches the visible quality control sub-section to "By Target Size". */
+        qualityModeTarget.addEventListener('change', () => {
+            if (qualityModeTarget.checked) {
+                qualityTargetSizeBox.style.display = 'block';
+                qualityPercentageBox.style.display = 'none';
+            }
+        });
+
+        // Event for clicking the upload box to trigger file input
+        uploadBox.addEventListener("click", () => fileInput.click());
+
+        // Event for handling file selection via the input field
+        fileInput.addEventListener("change", (e) => {
+            const files = e.target.files;
+            if (files.length) {
+                handleFiles(files);
+            }
+        });
+
+        // Drag and Drop functionality
+        uploadBox.addEventListener('dragover', (event) => {
+            event.preventDefault();
+            uploadBox.classList.add('dragover');
+        });
+
+        uploadBox.addEventListener('dragleave', () => {
+            uploadBox.classList.remove('dragover');
+        });
+
+        uploadBox.addEventListener('drop', (event) => {
+            event.preventDefault();
+            uploadBox.classList.remove('dragover');
+            const files = event.dataTransfer.files;
+            if (files.length) {
+                handleFiles(files);
+            }
+        });
+
+        // Aspect ratio handling for width/height inputs
+        widthInput.addEventListener("keyup", () => {
+            if (ratioInput.checked && ogImageRatio) {
+                const height = widthInput.value / ogImageRatio;
+                heightInput.value = Math.floor(height);
+            }
+        });
+
+        heightInput.addEventListener("keyup", () => {
+            if (ratioInput.checked && ogImageRatio) {
+                const width = heightInput.value * ogImageRatio;
+                widthInput.value = Math.floor(width);
+            }
+        });
+
+        // Main download trigger
+        downloadBtn.addEventListener("click", processAndDownload);
+
+        // --- Core Functions ---
+
+        /**
+         * Handles the display of newly uploaded image files in the preview area.
+         * Sets initial width/height inputs based on the first image.
+         * @param {FileList} files - The list of image files to process.
+         */
+        function handleFiles(files) {
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                if (!file.type.startsWith("image/")) continue; // Skip non-image files
+
+                const fileType = file.type.split('/')[1];
+                const fileName = file.name;
+
+                const imgContainer = document.createElement('div');
+                imgContainer.classList.add('img-container');
+
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(file);
+                img.classList.add('responsive-img');
+
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'X';
+                deleteButton.classList.add('delete-button');
+
+                imgContainer.appendChild(img);
+                imgContainer.appendChild(deleteButton);
+                previewImgs.appendChild(imgContainer);
+
+                img.addEventListener("load", () => {
+                    // Only set dimensions and ratio if this is the *first* image being loaded
+                    if (previewImgs.children.length === 1) { // Check children count *after* this image is added
+                        widthInput.value = img.naturalWidth;
+                        heightInput.value = img.naturalHeight;
+                        ogImageRatio = img.naturalWidth / img.naturalHeight;
+                    }
+                    document.querySelector(".wrapper").classList.add("active"); // Show controls
+                    
+                    // Store original dimensions and file info as dataset attributes for processing
+                    img.dataset.fileName = fileName;
+                    img.dataset.fileType = fileType;
+                    img.dataset.naturalWidth = img.naturalWidth;
+                    img.dataset.naturalHeight = img.naturalHeight;
+                });
+
+                // Delete button functionality
+                deleteButton.addEventListener('click', () => {
+                    imgContainer.remove(); // Remove the image container from the DOM
+                    URL.revokeObjectURL(img.src); // Free up memory used by the object URL
+
+                    // If no images are left, reset inputs and hide controls
+                    if (previewImgs.children.length === 0) {
+                        widthInput.value = '';
+                        heightInput.value = '';
+                        ogImageRatio = null;
+                        document.querySelector(".wrapper").classList.remove("active");
+                    }
+                });
+            }
+        }
+        
+        /**
+         * Converts a canvas content into an image Blob asynchronously.
+         * @param {HTMLCanvasElement} canvas - The canvas containing the image.
+         * @param {string} mimeType - The desired MIME type of the output image (e.g., 'image/jpeg', 'image/png').
+         * @param {number} quality - Compression quality (0.0 to 1.0) for JPEG. Ignored for PNG.
+         * @returns {Promise<Blob>} A promise that resolves with the image Blob.
+         */
+        function getBlob(canvas, mimeType, quality) {
+            return new Promise(resolve => canvas.toBlob(resolve, mimeType, quality));
+        }
+
+        /**
+         * Compresses an image drawn on a canvas to achieve a target file size (in bytes)
+         * using a binary search approach to find the optimal JPEG quality.
+         * @param {HTMLCanvasElement} canvas - The canvas with the image.
+         * @param {number} targetBytes - The desired maximum file size in bytes.
+         * @returns {Promise<Blob>} A promise that resolves with the compressed Blob (JPEG).
+         */
+        async function compressImageToSize(canvas, targetBytes) {
+            let minQuality = 0.0;
+            let maxQuality = 1.0;
+            let bestBlob = null; 
+            
+            // First, check if even 100% quality is already under the target
+            const highQualityBlob = await getBlob(canvas, 'image/jpeg', 1.0);
+            if (highQualityBlob.size <= targetBytes) {
+                return highQualityBlob;
+            }
+
+            // If not, perform binary search
+            for (let i = 0; i < 8; i++) { // 8 iterations for good precision
+                const midQuality = (minQuality + maxQuality) / 2;
+                const blob = await getBlob(canvas, 'image/jpeg', midQuality);
+
+                if (blob.size <= targetBytes) {
+                    minQuality = midQuality; // Image is small enough, try for better quality
+                    bestBlob = blob;
+                } else {
+                    maxQuality = midQuality; // Image is too big, reduce quality
+                }
+            }
+            
+            // Return the best found blob that is <= targetBytes.
+            // If no blob was found within the target after iterations (e.g., target too small),
+            // return the blob at the lowest possible quality (0.0).
+            if (!bestBlob) {
+                return await getBlob(canvas, 'image/jpeg', 0.0);
+            }
+            return bestBlob;
+        }
+
+        /**
+         * Orchestrates the resizing and compression of all images based on user settings,
+         * then triggers individual downloads.
+         */
+        async function processAndDownload() {
+            const images = previewImgs.querySelectorAll('img');
+            if (!images.length) {
+                console.error("No images to download.");
+                return;
+            }
+
+            // --- Capture All Settings Before Processing ---
+            const shouldResize = resizeToggle.checked;
+            const qualitySettingsEnabled = qualityToggle.checked;
+            const currentQualityMode = qualityModePercentage.checked ? 'percentage' : 'target';
+
+            let targetWidth, targetHeight, targetBytes;
+            let percentageQuality = 1.0; // Default to best quality if not percentage mode
+
+            if (shouldResize) {
+                targetWidth = parseInt(widthInput.value, 10);
+                targetHeight = parseInt(heightInput.value, 10);
+                if (isNaN(targetWidth) || isNaN(targetHeight) || targetWidth <= 0 || targetHeight <= 0) {
+                    alert("Please enter valid positive numbers for Width and Height.");
+                    return;
+                }
+            }
+            
+            if (qualitySettingsEnabled) {
+                if (currentQualityMode === 'percentage') {
+                    percentageQuality = parseFloat(qualitySelect.value);
+                } else { // currentQualityMode === 'target'
+                    const sizeValue = parseFloat(targetSizeInput.value);
+                    const unit = targetUnitInput.value;
+                    if (isNaN(sizeValue) || sizeValue <= 0) {
+                         alert("Please enter a valid positive number for Target Size.");
+                         return;
+                    }
+                    targetBytes = unit === 'MB' ? sizeValue * 1024 * 1024 : sizeValue * 1024;
+                }
+            }
+
+            // --- Show Progress Indicator ---
+            const progressIndicator = document.createElement('div');
+            progressIndicator.id = 'progressIndicator';
+            document.body.appendChild(progressIndicator);
+            let completedDownloads = 0;
+
+            // --- Process Each Image ---
+            for (let index = 0; index < images.length; index++) {
+                const previewImg = images[index];
+                const canvas = document.createElement("canvas");
+                const ctx = canvas.getContext("2d");
+
+                // Determine final canvas dimensions
+                const finalCanvasWidth = shouldResize ? targetWidth : parseInt(previewImg.dataset.naturalWidth, 10);
+                const finalCanvasHeight = shouldResize ? targetHeight : parseInt(previewImg.dataset.naturalHeight, 10);
+
+                canvas.width = finalCanvasWidth;
+                canvas.height = finalCanvasHeight;
+
+                // Draw image to canvas
+                ctx.drawImage(previewImg, 0, 0, canvas.width, canvas.height);
+
+                let outputFileName = previewImg.dataset.fileName;
+                let outputFileType = previewImg.dataset.fileType; // Default to original type
+
+                let finalBlob;
+
+                if (qualitySettingsEnabled) {
+                    if (currentQualityMode === 'percentage') {
+                        // If percentage quality is less than 1.0, we convert to JPEG for effective compression
+                        if (percentageQuality < 1.0 || outputFileType === 'png') {
+                             finalBlob = await getBlob(canvas, 'image/jpeg', percentageQuality);
+                             outputFileType = 'jpeg'; // Update file type for naming
+                        } else {
+                            // If 100% quality and original was JPEG, keep it
+                            finalBlob = await getBlob(canvas, `image/${outputFileType}`, 1.0);
+                        }
+                    } else { // currentQualityMode === 'target'
+                        finalBlob = await compressImageToSize(canvas, targetBytes);
+                        outputFileType = 'jpeg'; // Target size compression always outputs JPEG
+                    }
+                } else {
+                    // No quality settings, simply resize if requested, or keep original dimensions.
+                    // Keep original file type if possible, otherwise default to JPEG if something goes wrong.
+                    finalBlob = await getBlob(canvas, `image/${outputFileType}`, 1.0);
+                }
+                
+                // Ensure filename matches final file type
+                if (outputFileType === 'jpeg' && !outputFileName.match(/\.(jpe?g)$/i)) {
+                    outputFileName = outputFileName.substring(0, outputFileName.lastIndexOf('.')) + '.jpeg';
+                } else if (outputFileType === 'png' && !outputFileName.match(/\.png$/i)) {
+                    outputFileName = outputFileName.substring(0, outputFileName.lastIndexOf('.')) + '.png';
+                }
+
+                // 6. Download the final blob
+                downloadImage(finalBlob, outputFileName);
+
+                completedDownloads++;
+                progressIndicator.innerText = `Processing ${completedDownloads} of ${images.length} images...`;
+            }
+
+            // --- Hide Progress ---
+            progressIndicator.innerText = "Download completed!";
+            setTimeout(() => {
+                if(document.body.contains(progressIndicator)) {
+                    document.body.removeChild(progressIndicator);
+                }
+            }, 3000);
+        }
+
+        /**
+         * Triggers a download for a given Blob with a specified filename.
+         * @param {Blob} blob - The image Blob to download.
+         * @param {string} fileName - The desired name for the downloaded file.
+         */
+        function downloadImage(blob, fileName) {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url); // Clean up the object URL
+        }
+
+    </script>
+</body>
+</html>
