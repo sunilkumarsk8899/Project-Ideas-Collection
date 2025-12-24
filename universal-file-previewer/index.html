@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal File Previewer</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- JSZip Library CDN (for ZIP processing) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- PDF.js CDN (for PDF rendering) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .file-item.active {
+            background-color: #f0fdfa; /* teal-50 */
+            border-left: 4px solid #0d9488; /* teal-600 */
+            font-weight: 600;
+        }
+        .file-item:hover:not(.active) {
+            background-color: #f9fafb; /* gray-50 */
+        }
+        /* Custom scrollbar for file list and text preview */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1; /* slate-300 */
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background-color: transparent;
+        }
+        /* Canvas needs to resize within its container */
+        #pdfCanvas {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+            background-color: white;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        /* Style for media container */
+        .media-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+            background-color: #111827; /* Gray-900 */
+            width: 100%;
+            height: 100%;
+        }
+        .media-container img,
+        .media-container video,
+        .media-container audio {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 0.5rem;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-900">
+
+    <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+        <header class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Universal File Previewer</h1>
+                <p class="text-slate-500 text-sm mt-1">Preview ZIP contents, PDFs, Images, and Code instantly.</p>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <label for="fileInput" class="cursor-pointer bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-lg font-semibold transition shadow-sm flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                    </svg>
+                    Upload File
+                </label>
+                <input type="file" id="fileInput" class="hidden">
+            </div>
+        </header>
+
+        <!-- Status Bar -->
+        <div id="statusMessage" class="mb-4 text-sm font-medium transition-all duration-300"></div>
+
+        <!-- Main Workspace -->
+        <div id="contentWrapper" class="flex flex-col lg:flex-row gap-6 h-[75vh]">
+            
+            <!-- Sidebar: Archive Navigation -->
+            <div id="fileListPanel" class="w-full lg:w-80 bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col overflow-hidden hidden">
+                <div class="p-4 border-b border-slate-100 bg-slate-50/50">
+                    <h2 class="font-bold text-slate-800 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-teal-600" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4l2 2h4a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" />
+                        </svg>
+                        Archive Contents
+                    </h2>
+                    <div class="mt-3 relative">
+                        <input type="text" id="fileSearch" placeholder="Search files..." 
+                               class="w-full pl-9 pr-4 py-2 text-sm bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                </div>
+                <div class="flex-grow overflow-y-auto custom-scrollbar p-2">
+                    <ul id="fileList" class="space-y-0.5"></ul>
+                </div>
+                <div class="p-3 bg-slate-50 border-t border-slate-100 text-[10px] text-slate-400 text-center uppercase tracking-wider font-bold">
+                    End of archive
+                </div>
+            </div>
+
+            <!-- Previewer Window -->
+            <div id="previewPanel" class="flex-grow bg-white rounded-2xl shadow-xl border border-slate-200 flex flex-col overflow-hidden relative">
+                
+                <!-- Toolbar -->
+                <div class="h-14 px-4 bg-slate-900 border-b border-slate-800 flex items-center justify-between shrink-0">
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <div id="previewIcon" class="shrink-0 w-8 h-8 rounded bg-slate-800 flex items-center justify-center text-teal-400"></div>
+                        <span id="previewTitle" class="text-sm font-semibold text-slate-200 truncate max-w-[150px] md:max-w-xs">No file selected</span>
+                    </div>
+                    
+                    <div class="flex items-center gap-2">
+                        <!-- Copy Button -->
+                        <button id="copyButton" onclick="copyContent()" 
+                                class="hidden text-xs font-bold text-teal-400 hover:text-white bg-slate-800 hover:bg-teal-600 px-3 py-1.5 rounded transition">
+                            COPY
+                        </button>
+
+                        <!-- Download Button -->
+                        <button id="downloadButton" onclick="downloadCurrentFile()" 
+                                class="hidden text-xs font-bold text-white bg-teal-600 hover:bg-teal-700 px-3 py-1.5 rounded transition flex items-center gap-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                            DOWNLOAD
+                        </button>
+
+                        <!-- PDF Pager -->
+                        <div id="pdfControls" class="hidden items-center gap-1 bg-slate-800 rounded-lg p-1">
+                            <button id="prevPageBtn" onclick="handlePdfNavigation(-1)" 
+                                    class="p-1 text-slate-400 hover:text-white disabled:opacity-30 transition">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                            </button>
+                            <span id="pageInfo" class="text-[11px] font-mono font-bold text-slate-300 px-2 min-w-[60px] text-center">-- / --</span>
+                            <button id="nextPageBtn" onclick="handlePdfNavigation(1)" 
+                                    class="p-1 text-slate-400 hover:text-white disabled:opacity-30 transition">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Preview Surface -->
+                <div class="flex-grow overflow-auto bg-slate-50 relative custom-scrollbar" id="previewViewport">
+                    <pre id="textPreviewContainer" class="hidden absolute inset-0 p-6 text-sm font-mono text-slate-700 bg-white overflow-auto custom-scrollbar"><code id="previewContent"></code></pre>
+                    <div id="pdfPreviewContainer" class="hidden absolute inset-0 bg-slate-200 overflow-auto p-4 md:p-8 flex flex-col items-center"><canvas id="pdfCanvas"></canvas></div>
+                    <div id="mediaPreviewContainer" class="hidden absolute inset-0 media-container"><div id="mediaContent"></div></div>
+                    <div id="emptyState" class="absolute inset-0 flex flex-col items-center justify-center text-center p-10">
+                        <div class="w-20 h-20 bg-slate-200 rounded-full flex items-center justify-center text-slate-400 mb-4 animate-pulse">
+                            <svg class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                        </div>
+                        <h3 class="text-slate-600 font-semibold">Ready to Preview</h3>
+                        <p class="text-slate-400 text-sm mt-1 max-w-xs">Upload a file or a ZIP archive to see its contents here.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Globals ---
+        let currentZip = null;
+        let pdfDoc = null;
+        let pageNum = 1;
+        let zipEntries = [];
+        
+        // Track the data for the current preview to enable downloading
+        let currentPreviewBlob = null;
+        let currentPreviewFilename = "";
+
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        const fileInput = document.getElementById('fileInput');
+        const fileListPanel = document.getElementById('fileListPanel');
+        const fileList = document.getElementById('fileList');
+        const fileSearch = document.getElementById('fileSearch');
+        const statusMessage = document.getElementById('statusMessage');
+        const previewTitle = document.getElementById('previewTitle');
+        const previewIcon = document.getElementById('previewIcon');
+        
+        const textPreviewContainer = document.getElementById('textPreviewContainer');
+        const pdfPreviewContainer = document.getElementById('pdfPreviewContainer');
+        const mediaPreviewContainer = document.getElementById('mediaPreviewContainer');
+        const emptyState = document.getElementById('emptyState');
+        const previewContent = document.getElementById('previewContent');
+        const pdfCanvas = document.getElementById('pdfCanvas');
+        const pdfControls = document.getElementById('pdfControls');
+        const copyButton = document.getElementById('copyButton');
+        const downloadButton = document.getElementById('downloadButton');
+        const pageInfo = document.getElementById('pageInfo');
+        const prevPageBtn = document.getElementById('prevPageBtn');
+        const nextPageBtn = document.getElementById('nextPageBtn');
+
+        // --- Helpers ---
+
+        function showStatus(msg, type = 'info') {
+            const colors = {
+                info: 'text-blue-600 bg-blue-50 border-blue-100',
+                success: 'text-teal-700 bg-teal-50 border-teal-100',
+                error: 'text-red-600 bg-red-50 border-red-100'
+            };
+            statusMessage.textContent = msg;
+            statusMessage.className = `p-3 rounded-lg border text-sm font-medium mb-4 ${colors[type]}`;
+            setTimeout(() => { statusMessage.classList.add('opacity-0'); }, 4000);
+            setTimeout(() => { statusMessage.className = 'hidden'; }, 4500);
+        }
+
+        function getFileIcon(extension) {
+            const types = {
+                pdf: '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a2 2 0 00-2 2v8a2 2 0 002 2h6a2 2 0 002-2V6.414A2 2 0 0016.414 5L14 2.586A2 2 0 0012.586 2H9z"/><path d="M3 8a2 2 0 012-2v10h8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>',
+                image: '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/></svg>',
+                code: '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>',
+                zip: '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4l2 2h4a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd"/></svg>',
+                default: '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/></svg>'
+            };
+            if (['jpg', 'jpeg', 'png', 'gif', 'svg'].includes(extension)) return types.image;
+            if (['js', 'html', 'css', 'py', 'json', 'md', 'ts', 'txt'].includes(extension)) return types.code;
+            if (extension === 'pdf') return types.pdf;
+            if (extension === 'zip') return types.zip;
+            return types.default;
+        }
+
+        function getMimeType(ext) {
+            const map = {
+                pdf: 'application/pdf',
+                jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif',
+                mp3: 'audio/mpeg', wav: 'audio/wav', mp4: 'video/mp4', webm: 'video/webm'
+            };
+            return map[ext] || 'text/plain';
+        }
+
+        // --- Core UI Actions ---
+
+        function setViewMode(mode) {
+            emptyState.classList.add('hidden');
+            textPreviewContainer.classList.add('hidden');
+            pdfPreviewContainer.classList.add('hidden');
+            mediaPreviewContainer.classList.add('hidden');
+            copyButton.classList.add('hidden');
+            downloadButton.classList.remove('hidden'); // Show download for any valid preview
+            pdfControls.classList.add('hidden');
+
+            if (mode === 'text') {
+                textPreviewContainer.classList.remove('hidden');
+                copyButton.classList.remove('hidden');
+            } else if (mode === 'pdf') {
+                pdfPreviewContainer.classList.remove('hidden');
+                pdfControls.classList.remove('hidden');
+            } else if (mode === 'media') {
+                mediaPreviewContainer.classList.remove('hidden');
+            }
+        }
+
+        async function renderText(content, title, ext, blob) {
+            setViewMode('text');
+            previewTitle.textContent = title;
+            previewIcon.innerHTML = getFileIcon(ext);
+            previewContent.textContent = content;
+            currentPreviewBlob = blob;
+            currentPreviewFilename = title.split('/').pop();
+        }
+
+        async function renderMedia(blob, title, mime, ext) {
+            setViewMode('media');
+            previewTitle.textContent = title;
+            previewIcon.innerHTML = getFileIcon(ext);
+            
+            const url = URL.createObjectURL(blob);
+            const type = mime.split('/')[0];
+            const container = document.getElementById('mediaContent');
+            container.innerHTML = '';
+
+            let el;
+            if (type === 'image') {
+                el = document.createElement('img');
+                el.src = url;
+            } else if (type === 'audio') {
+                el = document.createElement('audio');
+                el.controls = true;
+                el.src = url;
+            } else if (type === 'video') {
+                el = document.createElement('video');
+                el.controls = true;
+                el.src = url;
+            }
+            container.appendChild(el);
+            currentPreviewBlob = blob;
+            currentPreviewFilename = title.split('/').pop();
+        }
+
+        async function renderPdf(data, title, ext, blob) {
+            setViewMode('pdf');
+            previewTitle.textContent = title;
+            previewIcon.innerHTML = getFileIcon(ext);
+            pageInfo.textContent = 'Loading...';
+
+            try {
+                if (pdfDoc) await pdfDoc.destroy();
+                pdfDoc = await pdfjsLib.getDocument({ data }).promise;
+                renderPdfPage(1);
+                currentPreviewBlob = blob;
+                currentPreviewFilename = title.split('/').pop();
+            } catch (err) {
+                showStatus(`PDF Error: ${err.message}`, 'error');
+            }
+        }
+
+        async function renderPdfPage(num) {
+            if (!pdfDoc) return;
+            pageNum = num;
+            const page = await pdfDoc.getPage(num);
+            const scale = 1.5;
+            const viewport = page.getViewport({ scale });
+            const context = pdfCanvas.getContext('2d');
+            pdfCanvas.height = viewport.height;
+            pdfCanvas.width = viewport.width;
+            await page.render({ canvasContext: context, viewport }).promise;
+            pageInfo.textContent = `${pageNum} / ${pdfDoc.numPages}`;
+            prevPageBtn.disabled = pageNum <= 1;
+            nextPageBtn.disabled = pageNum >= pdfDoc.numPages;
+            pdfPreviewContainer.scrollTo(0, 0);
+        }
+
+        function handlePdfNavigation(dir) {
+            if (pageNum + dir >= 1 && pageNum + dir <= pdfDoc.numPages) renderPdfPage(pageNum + dir);
+        }
+
+        function copyContent() {
+            const ta = document.createElement('textarea');
+            ta.value = previewContent.textContent;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            copyButton.textContent = 'COPIED!';
+            setTimeout(() => { copyButton.textContent = 'COPY'; }, 1500);
+        }
+
+        /**
+         * Triggers the download of the currently active preview file.
+         */
+        function downloadCurrentFile() {
+            if (!currentPreviewBlob || !currentPreviewFilename) return;
+            
+            const url = URL.createObjectURL(currentPreviewBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = currentPreviewFilename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // --- File Processing ---
+
+        async function loadArchive(file) {
+            try {
+                const buffer = await file.arrayBuffer();
+                currentZip = await JSZip.loadAsync(buffer);
+                zipEntries = Object.keys(currentZip.files).filter(p => !currentZip.files[p].dir).sort((a, b) => a.localeCompare(b));
+                fileListPanel.classList.remove('hidden');
+                showStatus(`Archive loaded: ${zipEntries.length} files.`, 'success');
+                renderFileList(zipEntries);
+
+                const firstPdf = zipEntries.find(p => p.toLowerCase().endsWith('.pdf'));
+                if (firstPdf) selectZipFile(firstPdf);
+                else if (zipEntries.length > 0) selectZipFile(zipEntries[0]);
+            } catch (err) {
+                showStatus(`ZIP Error: ${err.message}`, 'error');
+            }
+        }
+
+        function renderFileList(paths) {
+            fileList.innerHTML = '';
+            paths.forEach(path => {
+                const ext = path.split('.').pop().toLowerCase();
+                const filename = path.split('/').pop();
+                const li = document.createElement('li');
+                li.className = 'file-item px-3 py-2 rounded-lg cursor-pointer flex items-center gap-3 text-sm text-slate-600 transition truncate';
+                li.innerHTML = `<span class="shrink-0 text-slate-400">${getFileIcon(ext)}</span><span class="truncate">${filename}</span>`;
+                li.dataset.path = path;
+                li.onclick = () => selectZipFile(path);
+                fileList.appendChild(li);
+            });
+        }
+
+        async function selectZipFile(path) {
+            document.querySelectorAll('.file-item').forEach(el => el.classList.toggle('active', el.dataset.path === path));
+            const file = currentZip.files[path];
+            const ext = path.split('.').pop().toLowerCase();
+            const mime = getMimeType(ext);
+            const type = mime.split('/')[0];
+
+            try {
+                if (ext === 'pdf') {
+                    const data = await file.async('arraybuffer');
+                    const blob = await file.async('blob');
+                    renderPdf(data, path, ext, blob);
+                } else if (['image', 'audio', 'video'].includes(type)) {
+                    const blob = await file.async('blob');
+                    renderMedia(blob, path, mime, ext);
+                } else {
+                    const content = await file.async('text');
+                    const blob = await file.async('blob');
+                    renderText(content, path, ext, blob);
+                }
+            } catch (err) {
+                showStatus(`Error loading ${path}`, 'error');
+            }
+        }
+
+        fileInput.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (ext === 'zip') {
+                loadArchive(file);
+            } else {
+                fileListPanel.classList.add('hidden');
+                const mime = getMimeType(ext);
+                const type = mime.split('/')[0];
+                if (ext === 'pdf') renderPdf(await file.arrayBuffer(), file.name, ext, file);
+                else if (['image', 'audio', 'video'].includes(type)) renderMedia(file, file.name, mime, ext);
+                else {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => renderText(ev.target.result, file.name, ext, file);
+                    reader.readAsText(file);
+                }
+            }
+        };
+
+        fileSearch.oninput = (e) => {
+            const query = e.target.value.toLowerCase();
+            renderFileList(zipEntries.filter(p => p.toLowerCase().includes(query)));
+        };
+
+        window.onresize = () => pdfDoc && pdfPreviewContainer.style.display !== 'none' && renderPdfPage(pageNum);
+    </script>
+</body>
+</html>
